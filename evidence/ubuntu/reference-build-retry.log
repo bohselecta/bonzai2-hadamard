@@ -1,0 +1,3 @@
+[1/3] Linking CXX executable bin/llama-perplexity
+[2/3] Linking CXX shared library bin/libllama-bench-impl.so
+[3/3] Linking CXX executable bin/llama-bench

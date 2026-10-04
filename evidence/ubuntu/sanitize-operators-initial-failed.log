@@ -1,0 +1,4 @@
+register_backend: registered backend CPU (1 devices)
+register_device: registered device CPU (AMD Ryzen 5 4500 6-Core Processor)
+load_backend: failed to find ggml_backend_init in /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-sanitize-ubuntu/bin/libggml-cpu.so
+/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/tests/test-backend-ops.cpp:10951:26: runtime error: load of value 513, which is not a valid value for type 'ggml_scale_mode'

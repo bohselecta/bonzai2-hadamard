@@ -1,0 +1,11 @@
+Internal ctest changing into directory: /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda
+Test project /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda
+    Start 17: test-hadamard
+1/1 Test #17: test-hadamard ....................   Passed    1.67 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+main    =   1.67 sec*proc (1 test)
+
+Total Test time (real) =   1.68 sec

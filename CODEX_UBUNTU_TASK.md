@@ -1,3 +1,9 @@
+# Current entry point
+
+The Ubuntu private project handoff is complete. Start with `UBUNTU_RESULTS.md`, `PROJECT.md`, and the current `STATUS.md`. CUDA, sanitizer/leak, quality, benchmark and API gates passed on the recorded host. Preserve source/model pins, original CPU evidence and preregistered criteria; use ordinary Git in the existing private repository. Metal and broader unsupported features remain unvalidated. Do not publish another handoff or automated upstream contribution.
+
+The original task/checklist below is preserved as historical context and reproducibility guidance; its statements about pending CUDA work describe the earlier handoff.
+
 # Codex on Ubuntu: finish Bonsai 2 CUDA validation
 
 ## Task

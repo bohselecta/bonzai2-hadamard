@@ -1,0 +1,11 @@
+0.01.706.187 I cmn          init: llama threadpool init, n_threads = 4
+0.01.814.248 I 
+0.01.814.346 I system_info: n_threads = 4 (n_threads_batch = 4) / 12 | CUDA : ARCHS = 860 | USE_GRAPHS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.01.814.414 I perplexity: saving all logits to /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/reference.logits
+0.01.814.419 I perplexity: tokenizing the input ..
+0.02.463.505 I perplexity: tokenization took 649.077 ms
+0.02.463.712 I perplexity: calculating perplexity over 8 chunks, n_ctx=512, batch_size=512, n_seq=1
+0.03.858.394 I perplexity: 1.28 seconds per pass - ETA 0.17 minutes
+[1]6.3727,[2]8.7477,[3]8.1494,[4]7.9385,[5]7.9518,[6]8.3733,[7]8.5918,[8]9.2812,
+0.11.496.403 I Final estimate: PPL = 9.2812 +/- 0.54782
+

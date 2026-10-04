@@ -1,12 +1,21 @@
 # Use Bonsai 2 in your project
 
-This package contains a tested CPU integration and the executable Ubuntu CUDA handoff. It uses the official pinned Q2_0 checkpoint. CUDA hardware validation is still pending; the local setup runs those basic device and model checks rather than assuming they passed.
+This project contains the verified CPU and single RTX 3060 CUDA integration of the official pinned Q2_0 checkpoint. All required Ubuntu gates passed; see `UBUNTU_RESULTS.md`.
 
 ## Ubuntu setup and local API
 
 Install Python 3, Git, a C++ build toolchain, CMake, and Ninja. On Ubuntu, the ordinary package prerequisites can be installed with `sudo apt-get install python3 git build-essential cmake ninja-build`. CUDA additionally requires a working NVIDIA driver and CUDA toolkit with `nvcc`; do not replace a working driver just for this package. Allow roughly 25 GiB free disk. Check the real GPU and VRAM before running the full 27B model.
 
-Extract the archive, open its `bonsai2-hadamard` directory, and run:
+On this machine use the generated Git checkout and user-local toolkit:
+
+```sh
+cd /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-pr
+export PATH=/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/cuda-12.8/bin:$PATH
+export LD_LIBRARY_PATH=/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/cuda-12.8/lib64:${LD_LIBRARY_PATH:-}
+export CUDA_VISIBLE_DEVICES=0
+```
+
+Setup is already complete here. On a fresh machine run setup first; start the verified installation with serve:
 
 ```sh
 python3 scripts/project.py setup --backend cuda
@@ -23,9 +32,15 @@ curl http://127.0.0.1:8080/v1/chat/completions \
   -d '{"model":"bonsai2","messages":[{"role":"user","content":"Reply with BONSAI_OK"}],"temperature":0,"max_tokens":32}'
 ```
 
-The setup does not perform the separate Compute Sanitizer or full-model KLD/perplexity comparisons. Codex should complete those from `CODEX_UBUNTU_TASK.md` before a GPU readiness claim.
+Stop a foreground server with Ctrl-C. The retained background instance can be stopped with `python3 ../bonsai2-workspace/service-run.py stop`; this checks its recorded PID belongs to this llama-server before sending SIGTERM. Restart with `python3 ../bonsai2-workspace/service-run.py start`, or use the foreground serve command above. Live logs are `../bonsai2-workspace/service.log`; PID and installation records are `service.pid` and `project-state.json` in that workspace.
 
-## Submit the private Ubuntu handoff PR
+The separate sanitizer and PPL/KLD comparisons have passed on this host; setup itself performs the basic regression/model checks. Preserve `evidence/ubuntu/quality-criteria.md` before any new comparison. This is an OpenAI-compatible local API; Ollama integration is unvalidated. The approved stop of `jungle-trap-public` frees port8080; restoring that container requires stopping Bonsai first.
+
+## Existing GitHub work item
+
+The private repository and handoff PR already exist: [repository](https://github.com/bohselecta/bonsai2-hadamard), [PR #1](https://github.com/bohselecta/bonsai2-hadamard/pull/1). Resume ordinary Git work in `bonsai2-pr`; do not run the publisher again or create duplicate handoffs. The following original publication instructions are retained for provenance.
+
+## Original private handoff publication
 
 The default destination is a new private `bohselecta/bonsai2-hadamard` repository. This is a project integration repository; it does not modify llama.cpp upstream. Install GitHub CLI (`gh`) and authenticate it as `bohselecta`. Ensure Git has your author name and email configured. Then run:
 

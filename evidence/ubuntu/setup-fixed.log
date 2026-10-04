@@ -1,0 +1,20 @@
+name, memory.total [MiB], driver_version
+NVIDIA GeForce RTX 3060, 12288 MiB, 580.173.02
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Wed_Jan_15_19:20:09_PST_2025
+Cuda compilation tools, release 12.8, V12.8.61
+Build cuda_12.8.r12.8/compiler.35404655_0
+Build and selected-backend checks passed. Binaries: /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda/bin. Evidence: /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda/evidence
+The 27B checkpoint and host performance require scripts/verify_model.py next.
+/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/models/Ternary-Bonsai-2-27B-Q2_0-prism-fork-required.gguf
+Verifying the pinned model checksum...
+Loading model on the requested backend...
+Running marker...
+PASS marker
+Running json-arithmetic...
+PASS json-arithmetic
+Real-model checks passed; evidence: /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/model-check-20261004T075329087382Z
+Build, selected-backend tests, and real-model smoke checks passed. Evidence: /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/model-check-20261004T075329087382Z
+Run project.py serve with the same --workspace to start your project's local API.
+Comparative quality and GPU sanitizers remain separate gates in CODEX_UBUNTU_TASK.md.

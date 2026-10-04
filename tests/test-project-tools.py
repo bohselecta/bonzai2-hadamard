@@ -60,7 +60,7 @@ class ProjectChecks(unittest.TestCase):
                 project.serve(SimpleNamespace(workspace=workspace, port=8080))
             _, command, env = execute.call_args.args
             for flag, value in [("--host", "127.0.0.1"), ("--alias", "bonsai2"),
-                                ("--device", "CUDA0"), ("-ngl", "99")]:
+                                ("--device", "CUDA0"), ("-ngl", "99"), ("-b", "128"), ("-ub", "32")]:
                 self.assertEqual(command[command.index(flag) + 1], value)
             self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "2")
             model.write_bytes(b"changed")

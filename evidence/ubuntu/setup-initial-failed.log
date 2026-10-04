@@ -1,0 +1,9 @@
+name, memory.total [MiB], driver_version
+NVIDIA GeForce RTX 3060, 12288 MiB, 580.173.02
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Wed_Jan_15_19:20:09_PST_2025
+Cuda compilation tools, release 12.8, V12.8.61
+Build cuda_12.8.r12.8/compiler.35404655_0
+ERROR: Command failed (1); see /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda/evidence/fixtures-gpu.log
+ERROR: Command '['/usr/bin/python3', '/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-pr/scripts/build.py', '--directory', '/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp', '--backend', 'cuda', '--jobs', '4']' returned non-zero exit status 1.

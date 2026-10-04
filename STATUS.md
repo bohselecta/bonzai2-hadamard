@@ -1,3 +1,9 @@
+# Current Ubuntu project status
+
+The required single-GPU text inference gates passed on 2026-10-04: CUDA execution, Compute Sanitizer, ASan/UBSan with leaks, actual checkpoint full offload, pinned Prism quality comparison, hardware benchmarks and local project API. See [UBUNTU_RESULTS.md](UBUNTU_RESULTS.md) for commands, measurements, fixes and evidence. Use [PROJECT.md](PROJECT.md) to run the verified service. Metal and broader unsupported features remain unvalidated.
+
+## Historical CPU handoff record (preserved)
+
 # Validation status
 
 Validated on 2026-10-03 on Linux x86_64, AMD EPYC 9V74, GCC 13.3, CMake 4.4.3. The execution environment has an 8 GiB memory limit and no CUDA or Metal device. See `evidence/environment.json` for host details. The base and all source/model pins are recorded in `source.json` and `model.json`.

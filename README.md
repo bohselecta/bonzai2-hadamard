@@ -6,7 +6,7 @@ The exact upstream base, pull request revisions, patch checksum, and patched-fil
 
 ## Project quick start
 
-See `PROJECT.md` for the executable Ubuntu setup, local project API, and private handoff PR submission. On the Ubuntu GPU host, run `python3 scripts/project.py setup --backend cuda`, then `python3 scripts/project.py serve`. The remaining GPU acceptance gates are in `CODEX_UBUNTU_TASK.md`.
+See `PROJECT.md` for the executable Ubuntu setup, local project API, and private handoff PR submission. On the Ubuntu GPU host, run `python3 scripts/project.py setup --backend cuda`, then `python3 scripts/project.py serve`. The completed Ubuntu acceptance results and measurements are in `UBUNTU_RESULTS.md`; `CODEX_UBUNTU_TASK.md` retains the reproducibility checklist.
 
 ## Use
 
@@ -61,6 +61,8 @@ Use `-ngl 99` with a CUDA/Metal binary on a host with enough device memory. The 
 | `patches/0003-metadata-guards.patch` | Additional fail-closed metadata validation and bounded rotation allocation |
 | `patches/0004-regression-tests.patch` | Standalone generated GGUF model tests, registered with CTest |
 | `patches/0005-wide-multirow-tests.patch` | Ubuntu validation coverage: all wide widths, F16/F32, seven rows |
+| `patches/0006-sanitizer-fixture-isolation.patch` | Scope exact Hadamard filter construction to avoid unrelated fixture UB |
+| `patches/0007-cuda-f32-precision.patch` | Preserve F32 arithmetic across basis changes on CUDA |
 | `patches/bonsai2-combined.patch` | Complete patch used by the installer |
 | `DESIGN.md` | Mathematical basis, ownership, graph integration, and test rationale |
 | `STATUS.md`, `evidence/` | Actual validation results and limits |
@@ -72,7 +74,7 @@ The numbered patches may be applied in order instead of the combined patch. Do n
 
 The supported experiment is the pinned text-only Q2_0 checkpoint, ordinary inference, and CPU or one CUDA/Metal GPU. Fork-specific `PQ2_0` and `PTQ1_0`, vision projectors, multi-GPU split modes, RPC, LoRA adapters, and speculative/MTP decoding are outside this package's validation. The source PR includes an MTP embedding path, but this package does not certify it.
 
-Read `STATUS.md` before using a GPU build. Hardware tests and comparative perplexity/KLD are explicit outstanding review gates. Neither a fluent response nor a CPU test certifies an untested GPU kernel.
+Read `STATUS.md` before using a GPU build. CUDA hardware tests and comparative perplexity/KLD passed on the documented RTX 3060; Metal remains unvalidated. Neither a fluent response nor a CPU test certifies an untested GPU kernel.
 
 ## Attribution and contribution
 

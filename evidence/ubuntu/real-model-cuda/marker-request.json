@@ -1,0 +1,13 @@
+{
+  "model": "bonsai2",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Return exactly BONSAI_OK, without any explanation."
+    }
+  ],
+  "temperature": 0,
+  "seed": 42,
+  "max_tokens": 128,
+  "cache_prompt": false
+}

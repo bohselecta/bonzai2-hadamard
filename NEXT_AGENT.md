@@ -1,3 +1,9 @@
+# Current entry point
+
+The Ubuntu private project handoff is complete. Start with `UBUNTU_RESULTS.md`, `PROJECT.md`, and the current `STATUS.md`. CUDA, sanitizer/leak, quality, benchmark and API gates passed on the recorded host. Preserve source/model pins, original CPU evidence and preregistered criteria; use ordinary Git in the existing private repository. Metal and broader unsupported features remain unvalidated. Do not publish another handoff or automated upstream contribution.
+
+The original task/checklist below is preserved as historical context and reproducibility guidance; its statements about pending CUDA work describe the earlier handoff.
+
 # Handoff for host validation and human review
 
 The private CPU integration is implemented and has passed the recorded synthetic and real-model checks. Start with `STATUS.md`, `DESIGN.md`, and `source.json`. Reuse the pinned patch and the existing upstream work; do not open a duplicate feature PR.

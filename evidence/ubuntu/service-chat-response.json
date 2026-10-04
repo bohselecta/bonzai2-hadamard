@@ -1,0 +1,39 @@
+{
+  "status": 200,
+  "body": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The Hadamard transform is a linear transformation that maps a vector of real numbers to another vector of real numbers by multiplying it by a Hadamard matrix, effectively converting data between the time and frequency domains."
+        }
+      }
+    ],
+    "created": 1791102330,
+    "model": "bonsai2",
+    "system_fingerprint": "b1-836d571",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 43,
+      "prompt_tokens": 26,
+      "total_tokens": 69,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-Apu6ZnvWiTnOHDp3LVRtzlZxd2F4GEkH",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 270.05,
+      "prompt_per_token_ms": 10.386538461538462,
+      "prompt_per_second": 96.2784669505647,
+      "predicted_n": 43,
+      "predicted_ms": 1420.285,
+      "predicted_per_token_ms": 33.81630952380952,
+      "predicted_per_second": 29.57152965777995
+    }
+  }
+}

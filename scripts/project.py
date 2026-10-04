@@ -60,7 +60,7 @@ def setup(args):
          "--context", args.context, "--threads", args.threads], env)
     state = {"backend": args.backend, "binary": str(binary), "model": str(model),
              "model_sha256": MODEL["sha256"], "context": args.context,
-             "threads": args.threads, "evidence": str(evidence),
+             "threads": args.threads, "batch": 128, "ubatch": 32, "evidence": str(evidence),
              "cuda_visible_devices": env.get("CUDA_VISIBLE_DEVICES"),
              "source_revision": json.loads((ROOT / "source.json").read_text())["revision"],
              "verified_at": datetime.now(timezone.utc).isoformat()}
@@ -88,6 +88,7 @@ def serve(args):
     command = [state["binary"], "-m", str(model), "--host", "127.0.0.1",
                "--port", str(args.port), "--alias", "bonsai2", "-np", "1",
                "-c", str(state["context"]), "-t", str(state["threads"]),
+               "-b", str(state.get("batch", 128)), "-ub", str(state.get("ubatch", 32)),
                "-ngl", "0" if backend == "cpu" else "99", "--fit", "off",
                "--jinja", "--reasoning", "off", "--reasoning-budget", "0"]
     env = os.environ.copy()

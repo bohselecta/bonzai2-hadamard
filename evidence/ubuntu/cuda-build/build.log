@@ -1,0 +1,31 @@
+[1/26] Provisioning UI assets
+CMake Warning at /home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/scripts/ui-assets.cmake:584 (message):
+  UI: no assets available - building without an embedded UI.  In a
+  disconnected environment, download the pre-built UI from a llama.cpp
+  release at https://github.com/ggml-org/llama.cpp/releases and extract to
+  tools/ui/dist.
+
+
+-- UI: assets unchanged, skipping embedding
+[2/23] Building CUDA object ggml/src/ggml-cuda/CMakeFiles/ggml-cuda.dir/ggml-cuda.cu.o
+[3/23] Linking CUDA shared library bin/libggml-cuda.so.0.25.3
+[4/23] Creating library symlink bin/libggml-cuda.so.0 bin/libggml-cuda.so
+[5/23] Linking CXX shared library bin/libggml.so.0.25.3
+[6/23] Creating library symlink bin/libggml.so.0 bin/libggml.so
+[7/23] Linking CXX shared library bin/libllama.so.0.5.0
+[8/23] Creating library symlink bin/libllama.so.0 bin/libllama.so
+[9/23] Linking CXX shared library bin/libmtmd.so.0.5.0
+[10/23] Creating library symlink bin/libmtmd.so.0 bin/libmtmd.so
+[11/23] Linking CXX shared library bin/libllama-common.so.0.5.0
+[12/23] Creating library symlink bin/libllama-common.so.0 bin/libllama-common.so
+[13/23] Linking CXX executable bin/test-gguf
+[14/23] Linking CXX executable bin/test-hadamard
+[15/23] Linking CXX shared library bin/libllama-bench-impl.so
+[16/23] Linking CXX executable bin/test-backend-ops
+[17/23] Linking CXX shared library bin/libllama-perplexity-impl.so
+[18/23] Linking CXX executable bin/llama-bench
+[19/23] Linking CXX shared library bin/libllama-server-impl.so
+[20/23] Linking CXX executable bin/llama-perplexity
+[21/23] Linking CXX shared library bin/libllama-cli-impl.so
+[22/23] Linking CXX executable bin/llama-server
+[23/23] Linking CXX executable bin/llama-cli

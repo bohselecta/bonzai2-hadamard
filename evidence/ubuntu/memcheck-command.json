@@ -1,0 +1,15 @@
+[
+  "compute-sanitizer",
+  "--tool",
+  "memcheck",
+  "--error-exitcode",
+  "1",
+  "/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda/bin/test-backend-ops",
+  "test",
+  "-b",
+  "CUDA0",
+  "-o",
+  "MUL_MAT_HADAMARD",
+  "-p",
+  "k=(1024|2048|4096|8192),"
+]

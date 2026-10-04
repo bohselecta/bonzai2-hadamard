@@ -1,0 +1,22 @@
+[
+  {
+    "runtime": "patched",
+    "pp512": 494.116937,
+    "pp_stddev": 8.382149,
+    "tg128": 30.838998,
+    "tg_stddev": 0.072107,
+    "sampled_peak_gpu_total_mib": 7894,
+    "sampled_peak_compute_process_mib": 7400,
+    "peak_host_rss_kib": 7803072
+  },
+  {
+    "runtime": "reference",
+    "pp512": 527.811236,
+    "pp_stddev": 6.658032,
+    "tg128": 32.702169,
+    "tg_stddev": 0.26859,
+    "sampled_peak_gpu_total_mib": 7894,
+    "sampled_peak_compute_process_mib": 7376,
+    "peak_host_rss_kib": 7803208
+  }
+]

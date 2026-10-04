@@ -17,3 +17,5 @@ Additional metadata guards, generated-model regression tests, packaging scripts,
 No model weights are distributed in this package. The public Prism model repository declares Apache-2.0; its license and terms apply separately to downloaded weights.
 
 Ubuntu multirow test coverage and project test identity isolation were prepared with AI assistance. The attributed runtime and CUDA patches remain unchanged.
+
+Ubuntu F32 precision correction, scoped sanitizer fixture construction, service allocation settings and validation documentation were prepared with substantial OpenAI Codex assistance for this private project.

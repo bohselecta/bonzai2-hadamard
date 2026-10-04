@@ -1,0 +1,43 @@
+diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
+index 303c9f4..73af8d5 100644
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -1539,6 +1539,13 @@ static void ggml_cuda_mul_mat_cublas_impl(ggml_backend_cuda_context & ctx, const
+     // Theoretically cublasGemmStridedBatchedEx would always work, even for a single matrix.
+     // However, for some old NVIDIA and AMD GPUs the strided/Ex GEMM is much slower,
+     //     probably because the internal kernel selection logic is suboptimal.
++    cublasMath_t math_mode;
++    const bool strict_f32 = compute_type == GGML_TYPE_F32;
++    if (strict_f32) {
++        CUBLAS_CHECK(cublasGetMathMode(cublas_h, &math_mode));
++        CUBLAS_CHECK(cublasSetMathMode(cublas_h, CUBLAS_PEDANTIC_MATH));
++    }
++
+     if (compute_type == GGML_TYPE_F32 && ne12 == 1 && ne13 == 1) {
+         CUBLAS_CHECK(
+             cublasSgemm(cublas_h, CUBLAS_OP_T, CUBLAS_OP_N,
+@@ -1611,6 +1618,10 @@ static void ggml_cuda_mul_mat_cublas_impl(ggml_backend_cuda_context & ctx, const
+                 CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+     }
+ 
++    if (strict_f32) {
++        CUBLAS_CHECK(cublasSetMathMode(cublas_h, math_mode));
++    }
++
+     // Convert output back to F32 if needed
+     if (cu_data_type != CUDA_R_32F) {
+         const to_fp32_cuda_t to_fp32_cuda = ggml_get_to_fp32_cuda(traits::ggml_type_val);
+@@ -1913,7 +1924,12 @@ static void ggml_cuda_mul_mat(ggml_backend_cuda_context & ctx, const ggml_tensor
+         return;
+     }
+     if (ggml_cuda_should_use_mmf(src0->type, cc, warp_size, src0->ne, src0->nb, ne11, /*mul_mat_id =*/ false)) {
+-        ggml_cuda_mul_mat_f(ctx, src0, src1, nullptr, dst);
++        // TF32 rounding is basis dependent; keep F32 inputs in F32 arithmetic.
++        if (src0->type == GGML_TYPE_F32) {
++            ggml_cuda_mul_mat_cublas(ctx, src0, src1, dst);
++        } else {
++            ggml_cuda_mul_mat_f(ctx, src0, src1, nullptr, dst);
++        }
+         return;
+     }
+     if (ggml_cuda_should_use_mmvq(src0->type, cc, ne11)) {

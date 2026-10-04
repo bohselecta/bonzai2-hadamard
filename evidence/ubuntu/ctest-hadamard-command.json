@@ -1,0 +1,8 @@
+[
+  "ctest",
+  "--test-dir",
+  "/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/llama.cpp/build-bonsai2-cuda",
+  "-R",
+  "^test-hadamard$",
+  "--output-on-failure"
+]

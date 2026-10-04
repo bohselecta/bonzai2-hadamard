@@ -1,0 +1,2 @@
+[1/2] Building CXX object tests/CMakeFiles/test-backend-ops.dir/test-backend-ops.cpp.o
+[2/2] Linking CXX executable bin/test-backend-ops

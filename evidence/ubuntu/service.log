@@ -1,0 +1,48 @@
+Project API: http://127.0.0.1:8080/v1; model: bonsai2
+0.00.184.236 I srv  llama_server: initializing ...
+0.00.184.254 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.184.417 W srv  llama_server: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.184.501 E srv         start: couldn't bind HTTP server socket, hostname: 127.0.0.1, port: 8080
+0.00.184.503 I srv    operator(): operator(): cleaning up before exit...
+0.00.184.620 E srv  llama_server: exiting due to HTTP server error
+Project API: http://127.0.0.1:8080/v1; model: bonsai2
+0.00.181.889 I srv  llama_server: initializing ...
+0.00.181.907 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.182.066 W srv  llama_server: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.184.660 I srv    load_model: loading model '/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/models/Ternary-Bonsai-2-27B-Q2_0-prism-fork-required.gguf'
+0.02.113.484 I cmn          init: llama threadpool init, n_threads = 4
+0.02.357.455 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 2048, kv_unified = 'false'
+0.02.362.057 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+0.02.362.094 I srv  llama_server: model loaded
+0.02.362.098 I srv  llama_server: listening on http://127.0.0.1:8080
+0.02.362.101 W srv  llama_server: notice: server default port will be changed to :9931 in a future release (ref: https://github.com/ggml-org/llama.cpp/pull/26508)
+0.02.741.670 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.02.741.794 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.04.395.385 I slot print_timing: id  0 | task 0 | prompt eval time =     229.17 ms /    26 tokens (    8.81 ms per token,   113.45 tokens per second)
+0.04.395.390 I slot print_timing: id  0 | task 0 |        eval time =    1424.39 ms /    43 tokens (   33.91 ms per token,    29.49 tokens per second)
+0.04.395.391 I slot print_timing: id  0 | task 0 |       total time =    1653.56 ms /    69 tokens
+0.04.395.395 I slot print_timing: id  0 | task 0 |    graphs reused =         42
+0.04.395.433 I slot      release: id  0 | task 0 | stop processing: n_tokens = 68, truncated = 0
+0.04.396.783 W srv    operator(): got exception: {"error":{"code":400,"message":"[json.exception.parse_error.101] parse error at line 1, column 2: syntax error while parsing object key - invalid literal; last read: '{i'; expected string literal","type":"invalid_request_error"}}
+0.04.397.872 W srv    operator(): got exception: {"error":{"code":400,"message":"'messages' is required","type":"invalid_request_error"}}
+0.04.454.167 I srv    operator(): operator(): cleaning up before exit...
+Project API: http://127.0.0.1:8080/v1; model: bonsai2
+0.00.189.995 I srv  llama_server: initializing ...
+0.00.190.011 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.190.175 W srv  llama_server: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.192.754 I srv    load_model: loading model '/home/pr4nz/dev/bonsai2-hadamard-ubuntu/bonsai2-workspace/models/Ternary-Bonsai-2-27B-Q2_0-prism-fork-required.gguf'
+0.02.133.328 I cmn          init: llama threadpool init, n_threads = 4
+0.02.383.049 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 2048, kv_unified = 'false'
+0.02.387.790 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+0.02.387.830 I srv  llama_server: model loaded
+0.02.387.835 I srv  llama_server: listening on http://127.0.0.1:8080
+0.02.387.838 W srv  llama_server: notice: server default port will be changed to :9931 in a future release (ref: https://github.com/ggml-org/llama.cpp/pull/26508)
+0.17.280.418 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+0.17.280.504 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.18.970.871 I slot print_timing: id  0 | task 0 | prompt eval time =     270.05 ms /    26 tokens (   10.39 ms per token,    96.28 tokens per second)
+0.18.970.876 I slot print_timing: id  0 | task 0 |        eval time =    1420.29 ms /    43 tokens (   33.82 ms per token,    29.57 tokens per second)
+0.18.970.877 I slot print_timing: id  0 | task 0 |       total time =    1690.34 ms /    69 tokens
+0.18.970.882 I slot print_timing: id  0 | task 0 |    graphs reused =         42
+0.18.970.918 I slot      release: id  0 | task 0 | stop processing: n_tokens = 68, truncated = 0
+0.18.972.391 W srv    operator(): got exception: {"error":{"code":400,"message":"[json.exception.parse_error.101] parse error at line 1, column 2: syntax error while parsing object key - invalid literal; last read: '{i'; expected string literal","type":"invalid_request_error"}}
+0.18.973.673 W srv    operator(): got exception: {"error":{"code":400,"message":"'messages' is required","type":"invalid_request_error"}}

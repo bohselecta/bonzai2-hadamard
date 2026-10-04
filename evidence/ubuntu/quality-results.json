@@ -1,0 +1,8 @@
+{
+  "reference_ppl": 9.2812,
+  "patched_ppl": 9.2855,
+  "relative_ppl_delta": 0.000463302159203538,
+  "mean_kld": 0.000139,
+  "passed": true,
+  "reference_logits_sha256": "fd5098ca8e587104e6a23f3868c4d14feb0f116122ab5f4a131152a4078e3501"
+}

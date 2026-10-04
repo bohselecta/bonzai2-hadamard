@@ -1,6 +1,6 @@
 Preparing worktree (detached HEAD 836d571)
 HEAD is now at 836d571 mtmd : fix deprecated strdup warning on Windows (#29863)
-combined: clean application and all 12 patched hashes match
+combined: clean application and all 13 patched hashes match
 Preparing worktree (detached HEAD 836d571)
 HEAD is now at 836d571 mtmd : fix deprecated strdup warning on Windows (#29863)
-series: clean application and all 12 patched hashes match
+series: clean application and all 13 patched hashes match

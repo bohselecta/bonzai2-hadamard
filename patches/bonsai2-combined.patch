@@ -1,143 +1,5 @@
-diff --git a/ggml/src/ggml-cuda/fwht.cu b/ggml/src/ggml-cuda/fwht.cu
-index 67eea59..d69e2ed 100644
---- a/ggml/src/ggml-cuda/fwht.cu
-+++ b/ggml/src/ggml-cuda/fwht.cu
-@@ -2,6 +2,9 @@
- #include "convert.cuh"
- #include "fwht.cuh"
- 
-+// wide FWHT blocks use one row per thread block with this many threads
-+#define GGML_CUDA_FWHT_BLOCK_NT 256
-+
- template <int N, typename T>
- __launch_bounds__(4*ggml_cuda_get_physical_warp_size(), 1)
- __global__ void fwht_cuda(const T * src, float * dst, const int64_t n_rows, const float scale) {
-@@ -59,6 +62,87 @@ __global__ void fwht_cuda(const T * src, float * dst, const int64_t n_rows, cons
-     }
- }
- 
-+// Wide blocks: one row per thread block instead of per warp, so each thread keeps N/NT
-+// values rather than N/32. Stages below the warp width still shuffle, those up to the
-+// block width go through shared memory, and the rest stay in registers.
-+template <int N, int NT, typename T>
-+__launch_bounds__(NT, 1)
-+__global__ void fwht_cuda_block(const T * src, float * dst, const int64_t n_rows, const float scale) {
-+    constexpr int warp_size = ggml_cuda_get_physical_warp_size();
-+    constexpr int NE        = N / NT;
-+    static_assert(NE >= 1 && N % NT == 0 && NT % warp_size == 0, "bad FWHT block shape");
-+
-+    __shared__ float s[N];
-+
-+    const int64_t r = blockIdx.x;
-+    if (r >= n_rows) {
-+        return;
-+    }
-+
-+    src += r * N;
-+    dst += r * N;
-+
-+    const int tid  = threadIdx.x;
-+    const int lane = tid % warp_size;
-+
-+    ggml_cuda_pdl_sync();
-+
-+    float reg[NE];
-+#pragma unroll
-+    for (int i = 0; i < NE; ++i) {
-+        reg[i] = ggml_cuda_cast<float>(src[i * NT + tid]) * scale;
-+    }
-+
-+    // stages within a warp: partner differs in the lane bits
-+#pragma unroll
-+    for (int h = 1; h < warp_size; h *= 2) {
-+#pragma unroll
-+        for (int j = 0; j < NE; j++) {
-+            const float val  = reg[j];
-+            const float val2 = __shfl_xor_sync(0xFFFFFFFF, val, h, warp_size);
-+            reg[j] = (lane & h) == 0 ? val + val2 : val2 - val;
-+        }
-+    }
-+
-+    // stages across warps: partner differs in the thread-index bits above the lane
-+#pragma unroll
-+    for (int h = warp_size; h < NT; h *= 2) {
-+#pragma unroll
-+        for (int j = 0; j < NE; j++) {
-+            s[j * NT + tid] = reg[j];
-+        }
-+        __syncthreads();
-+#pragma unroll
-+        for (int j = 0; j < NE; j++) {
-+            const float val  = reg[j];
-+            const float val2 = s[j * NT + (tid ^ h)];
-+            reg[j] = (tid & h) == 0 ? val + val2 : val2 - val;
-+        }
-+        __syncthreads();
-+    }
-+
-+    // stages above the block width: partner is another register of the same thread
-+#pragma unroll
-+    for (int h = NT; h < N; h *= 2) {
-+        const int step = h / NT;
-+#pragma unroll
-+        for (int j = 0; j < NE; j += 2 * step) {
-+#pragma unroll
-+            for (int k = 0; k < step; k++) {
-+                const float x = reg[j + k];
-+                const float y = reg[j + k + step];
-+                reg[j + k]        = x + y;
-+                reg[j + k + step] = x - y;
-+            }
-+        }
-+    }
-+
-+#pragma unroll
-+    for (int i = 0; i < NE; ++i) {
-+        dst[i * NT + tid] = reg[i];
-+    }
-+}
-+
- template <typename T>
- static bool ggml_cuda_op_fwht_impl(ggml_backend_cuda_context & ctx, const ggml_tensor * src, ggml_tensor * dst) {
-     const int     n    = src->ne[0];
-@@ -94,7 +178,34 @@ static bool ggml_cuda_op_fwht_impl(ggml_backend_cuda_context & ctx, const ggml_t
-             ggml_cuda_kernel_launch(fwht_cuda<512, T>, launch_params, src_d, dst_d, rows, scale);
-             return true;
-         default:
--            return false;
-+            break;
-+    }
-+
-+    // wide blocks: one row per thread block
-+    {
-+        constexpr int nt = GGML_CUDA_FWHT_BLOCK_NT;
-+
-+        dim3 grid_dims_w(rows, 1, 1);
-+        dim3 block_dims_w(nt, 1, 1);
-+        const ggml_cuda_kernel_launch_params launch_params_w =
-+            ggml_cuda_kernel_launch_params(grid_dims_w, block_dims_w, 0, stream);
-+
-+        switch (n) {
-+            case 1024:
-+                ggml_cuda_kernel_launch(fwht_cuda_block<1024, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
-+                return true;
-+            case 2048:
-+                ggml_cuda_kernel_launch(fwht_cuda_block<2048, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
-+                return true;
-+            case 4096:
-+                ggml_cuda_kernel_launch(fwht_cuda_block<4096, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
-+                return true;
-+            case 8192:
-+                ggml_cuda_kernel_launch(fwht_cuda_block<8192, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
-+                return true;
-+            default:
-+                return false;
-+        }
-     }
- }
- 
 diff --git a/src/llama-context.cpp b/src/llama-context.cpp
-index 96b5464..8fd5f10 100644
+index 88851c6..dbec8d8 100644
 --- a/src/llama-context.cpp
 +++ b/src/llama-context.cpp
 @@ -25,6 +25,81 @@
@@ -222,7 +84,7 @@ index 96b5464..8fd5f10 100644
  static llm_graph_type ctx_type_to_graph_type(llama_context_type ctx_type) {
      switch (ctx_type) {
          case LLAMA_CONTEXT_TYPE_DEFAULT: return LLM_GRAPH_TYPE_DEFAULT;
-@@ -2560,6 +2635,13 @@ ggml_cgraph * llama_context::graph_reserve(
+@@ -2524,6 +2599,13 @@ ggml_cgraph * llama_context::graph_reserve(
  
      auto * gf = model.build_graph(gparams);
  
@@ -236,7 +98,7 @@ index 96b5464..8fd5f10 100644
      this->n_input_tensors = llama_graph_n_input_tensors(gf);
      this->n_outputs = save_n_outputs;
  
-@@ -2597,6 +2679,8 @@ llm_graph_params llama_context::graph_params(
+@@ -2561,6 +2643,8 @@ llm_graph_params llama_context::graph_params(
          /*.mctx        =*/ mctx,
          /*.cross       =*/ &cross,
          /*.prec_policy =*/ &model.prec_policy,
@@ -246,10 +108,10 @@ index 96b5464..8fd5f10 100644
          /*.n_outputs   =*/ n_outputs,
          /*.cb          =*/ graph_get_cb(),
 diff --git a/src/llama-context.h b/src/llama-context.h
-index 95b7226..b9f0135 100644
+index 35a7071..b772f92 100644
 --- a/src/llama-context.h
 +++ b/src/llama-context.h
-@@ -392,6 +392,9 @@ private:
+@@ -391,6 +391,9 @@ private:
      // env: LLAMA_GRAPH_REUSE_DISABLE
      bool graph_reuse_disable = false;
  
@@ -260,10 +122,10 @@ index 95b7226..b9f0135 100644
      mutable int64_t t_start_us  = 0;
      mutable int64_t t_load_us   = 0;
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index 16a3ed2..f3305d9 100644
+index a806126..d9d456e 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
-@@ -1491,6 +1491,8 @@ llm_graph_context::llm_graph_context(const llm_graph_params & params) :
+@@ -1490,6 +1490,8 @@ llm_graph_context::llm_graph_context(const llm_graph_params & params) :
      mctx             (params.mctx),
      cross            (params.cross),
      prec_policy      (params.prec_policy),
@@ -272,7 +134,7 @@ index 16a3ed2..f3305d9 100644
      samplers         (params.samplers),
      cb_func          (params.cb),
      res              (params.res),
-@@ -1513,10 +1515,43 @@ ggml_tensor * llm_graph_context::build_cvec(
+@@ -1512,10 +1514,43 @@ ggml_tensor * llm_graph_context::build_cvec(
      return cvec->apply_to(ctx0, cur, il);
  }
  
@@ -316,7 +178,7 @@ index 16a3ed2..f3305d9 100644
      ggml_tensor * res = ggml_mul_mat(ctx0, w, cur);
  
      if (prec_policy) {
-@@ -1557,6 +1592,7 @@ ggml_tensor * llm_graph_context::build_lora_mm_id(
+@@ -1552,6 +1587,7 @@ ggml_tensor * llm_graph_context::build_lora_mm_id(
            ggml_tensor * cur, // ggml_tensor * b
            ggml_tensor * ids,
            ggml_tensor * w_s) const {
@@ -324,7 +186,7 @@ index 16a3ed2..f3305d9 100644
      ggml_tensor * res = ggml_mul_mat_id(ctx0, w, cur, ids);
  
      if (prec_policy) {
-@@ -2404,6 +2440,16 @@ ggml_tensor * llm_graph_context::build_inp_embd(ggml_tensor * tok_embd) const {
+@@ -2395,6 +2431,16 @@ ggml_tensor * llm_graph_context::build_inp_embd(ggml_tensor * tok_embd) const {
  
          cur = ggml_get_rows(ctx0, tok_embd, inp->tokens);
  
@@ -342,7 +204,7 @@ index 16a3ed2..f3305d9 100644
          for (const auto & lora : *loras) {
              llama_adapter_lora_weight * lw = lora.first->get_weight(tok_embd);
 diff --git a/src/llama-graph.h b/src/llama-graph.h
-index 366eccb..b30ac1b 100644
+index 3daa425..31d8034 100644
 --- a/src/llama-graph.h
 +++ b/src/llama-graph.h
 @@ -12,11 +12,27 @@
@@ -410,7 +272,7 @@ index 366eccb..b30ac1b 100644
                ggml_tensor * w,
                ggml_tensor * cur,
 diff --git a/src/llama-model-loader.cpp b/src/llama-model-loader.cpp
-index 6cc0b20..42b92a1 100644
+index 43c396f..a2aaee7 100644
 --- a/src/llama-model-loader.cpp
 +++ b/src/llama-model-loader.cpp
 @@ -408,6 +408,8 @@ namespace GGUFMeta {
@@ -431,21 +293,14 @@ index 6cc0b20..42b92a1 100644
      template bool llama_model_loader::get_key<uint32_t>   (enum llm_kv kid, uint32_t & result,    bool required);
      template bool llama_model_loader::get_key<std::string>(enum llm_kv kid, std::string & result, bool required);
 diff --git a/src/llama-model.cpp b/src/llama-model.cpp
-index 97e0cee..8bc66ba 100644
+index ab5e744..faf10b2 100644
 --- a/src/llama-model.cpp
 +++ b/src/llama-model.cpp
-@@ -1311,6 +1311,179 @@ void llama_model_base::load_hparams(llama_model_loader & ml) {
+@@ -1306,6 +1306,167 @@ void llama_model_base::load_hparams(llama_model_loader & ml) {
          gguf_kv.emplace(name, value);
      }
  
 +    uint32_t hadamard_version = 0;
-+    if (gguf_find_key(ctx, "prism.hadamard.version") < 0) {
-+        for (int64_t i = 0; i < gguf_get_n_kv(ctx); ++i) {
-+            if (strncmp(gguf_get_key(ctx, i), "prism.hadamard.", 15) == 0) {
-+                throw std::runtime_error("prism.hadamard metadata requires prism.hadamard.version");
-+            }
-+        }
-+    }
 +    ml.get_key("prism.hadamard.tied_output", hadamard_tied_output, false);
 +    if (ml.get_key("prism.hadamard.version", hadamard_version, false)) {
 +        if (hadamard_version != 1 && hadamard_version != 2) {
@@ -471,8 +326,7 @@ index 97e0cee..8bc66ba 100644
 +        ml.get_key("prism.hadamard.sign_mode", sign_mode);
 +        ml.get_arr("prism.hadamard.weight_names", weight_names);
 +
-+        // Bound the persistent dense rotation before computing its square.
-+        if (block_size == 0 || block_size > 8192 || (block_size & (block_size - 1)) != 0) {
++        if (block_size == 0 || (block_size & (block_size - 1)) != 0) {
 +            throw std::runtime_error(format("invalid prism.hadamard.block_size: %u", block_size));
 +        }
 +        if (transform != "normalized-sylvester-walsh-hadamard") {
@@ -500,11 +354,8 @@ index 97e0cee..8bc66ba 100644
 +            }
 +            size_t off = 0;
 +            for (const int32_t width : sign_widths) {
-+                if (width <= 0 || (uint32_t) width % block_size != 0 || (size_t) width > sign_values.size() - off) {
++                if (width <= 0 || (uint32_t) width % block_size != 0 || off + width > sign_values.size()) {
 +                    throw std::runtime_error(format("invalid prism.hadamard sign width: %d", width));
-+                }
-+                if (hadamard_sign_data.count(width)) {
-+                    throw std::runtime_error(format("duplicate prism.hadamard sign width: %d", width));
 +                }
 +                auto & vec = hadamard_sign_data[width];
 +                vec.assign(sign_values.begin() + off, sign_values.begin() + off + width);
@@ -583,8 +434,7 @@ index 97e0cee..8bc66ba 100644
 +        // tensors consumed by row lookup store latent rows and need the
 +        // inverse transform applied to the lookup result instead
 +        std::vector<std::string> inverse_names;
-+        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names,
-+                gguf_find_key(ctx, "prism.hadamard.inverse_weight_names") >= 0);
++        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names, false);
 +        for (const auto & name : inverse_names) {
 +            // the graph applies the inverse only to the token-embedding lookup; any
 +            // other latent table would load and silently stay rotated
@@ -614,7 +464,7 @@ index 97e0cee..8bc66ba 100644
      // get general kv
      ml.get_key(LLM_KV_GENERAL_NAME, name, false);
  
-@@ -1959,6 +2132,175 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
+@@ -1946,6 +2107,175 @@ bool llama_model_base::load_tensors(llama_model_loader & ml) {
          }
      }
  
@@ -791,10 +641,10 @@ index 97e0cee..8bc66ba 100644
  }
  
 diff --git a/src/llama-model.h b/src/llama-model.h
-index 2243377..4711d52 100644
+index a0f9f11..5c886d1 100644
 --- a/src/llama-model.h
 +++ b/src/llama-model.h
-@@ -731,6 +731,20 @@ struct llama_model {
+@@ -720,6 +720,20 @@ struct llama_model {
      // gguf metadata
      std::unordered_map<std::string, std::string> gguf_kv;
  
@@ -816,10 +666,10 @@ index 2243377..4711d52 100644
      std::vector<llama_device> devices;
  
 diff --git a/src/models/qwen35.cpp b/src/models/qwen35.cpp
-index d50f067..d52ca91 100644
+index a1e2635..d2c0e15 100644
 --- a/src/models/qwen35.cpp
 +++ b/src/models/qwen35.cpp
-@@ -533,6 +533,16 @@ llama_model_qwen35::graph_mtp::graph_mtp(const llama_model & model, const llm_gr
+@@ -519,6 +519,16 @@ llama_model_qwen35::graph_mtp::graph_mtp(const llama_model & model, const llm_gr
          ggml_tensor * tok_embd_w = layer.nextn.embed_tokens ? layer.nextn.embed_tokens : model.tok_embd;
  
          tok_embd = ggml_get_rows(ctx0, tok_embd_w, inp->tokens);
@@ -836,6 +686,193 @@ index d50f067..d52ca91 100644
      } else {
          tok_embd = inp->embd;
      }
+diff --git a/ggml/src/ggml-cuda/fwht.cu b/ggml/src/ggml-cuda/fwht.cu
+index 67eea59..d69e2ed 100644
+--- a/ggml/src/ggml-cuda/fwht.cu
++++ b/ggml/src/ggml-cuda/fwht.cu
+@@ -2,6 +2,9 @@
+ #include "convert.cuh"
+ #include "fwht.cuh"
+ 
++// wide FWHT blocks use one row per thread block with this many threads
++#define GGML_CUDA_FWHT_BLOCK_NT 256
++
+ template <int N, typename T>
+ __launch_bounds__(4*ggml_cuda_get_physical_warp_size(), 1)
+ __global__ void fwht_cuda(const T * src, float * dst, const int64_t n_rows, const float scale) {
+@@ -59,6 +62,87 @@ __global__ void fwht_cuda(const T * src, float * dst, const int64_t n_rows, cons
+     }
+ }
+ 
++// Wide blocks: one row per thread block instead of per warp, so each thread keeps N/NT
++// values rather than N/32. Stages below the warp width still shuffle, those up to the
++// block width go through shared memory, and the rest stay in registers.
++template <int N, int NT, typename T>
++__launch_bounds__(NT, 1)
++__global__ void fwht_cuda_block(const T * src, float * dst, const int64_t n_rows, const float scale) {
++    constexpr int warp_size = ggml_cuda_get_physical_warp_size();
++    constexpr int NE        = N / NT;
++    static_assert(NE >= 1 && N % NT == 0 && NT % warp_size == 0, "bad FWHT block shape");
++
++    __shared__ float s[N];
++
++    const int64_t r = blockIdx.x;
++    if (r >= n_rows) {
++        return;
++    }
++
++    src += r * N;
++    dst += r * N;
++
++    const int tid  = threadIdx.x;
++    const int lane = tid % warp_size;
++
++    ggml_cuda_pdl_sync();
++
++    float reg[NE];
++#pragma unroll
++    for (int i = 0; i < NE; ++i) {
++        reg[i] = ggml_cuda_cast<float>(src[i * NT + tid]) * scale;
++    }
++
++    // stages within a warp: partner differs in the lane bits
++#pragma unroll
++    for (int h = 1; h < warp_size; h *= 2) {
++#pragma unroll
++        for (int j = 0; j < NE; j++) {
++            const float val  = reg[j];
++            const float val2 = __shfl_xor_sync(0xFFFFFFFF, val, h, warp_size);
++            reg[j] = (lane & h) == 0 ? val + val2 : val2 - val;
++        }
++    }
++
++    // stages across warps: partner differs in the thread-index bits above the lane
++#pragma unroll
++    for (int h = warp_size; h < NT; h *= 2) {
++#pragma unroll
++        for (int j = 0; j < NE; j++) {
++            s[j * NT + tid] = reg[j];
++        }
++        __syncthreads();
++#pragma unroll
++        for (int j = 0; j < NE; j++) {
++            const float val  = reg[j];
++            const float val2 = s[j * NT + (tid ^ h)];
++            reg[j] = (tid & h) == 0 ? val + val2 : val2 - val;
++        }
++        __syncthreads();
++    }
++
++    // stages above the block width: partner is another register of the same thread
++#pragma unroll
++    for (int h = NT; h < N; h *= 2) {
++        const int step = h / NT;
++#pragma unroll
++        for (int j = 0; j < NE; j += 2 * step) {
++#pragma unroll
++            for (int k = 0; k < step; k++) {
++                const float x = reg[j + k];
++                const float y = reg[j + k + step];
++                reg[j + k]        = x + y;
++                reg[j + k + step] = x - y;
++            }
++        }
++    }
++
++#pragma unroll
++    for (int i = 0; i < NE; ++i) {
++        dst[i * NT + tid] = reg[i];
++    }
++}
++
+ template <typename T>
+ static bool ggml_cuda_op_fwht_impl(ggml_backend_cuda_context & ctx, const ggml_tensor * src, ggml_tensor * dst) {
+     const int     n    = src->ne[0];
+@@ -94,7 +178,34 @@ static bool ggml_cuda_op_fwht_impl(ggml_backend_cuda_context & ctx, const ggml_t
+             ggml_cuda_kernel_launch(fwht_cuda<512, T>, launch_params, src_d, dst_d, rows, scale);
+             return true;
+         default:
+-            return false;
++            break;
++    }
++
++    // wide blocks: one row per thread block
++    {
++        constexpr int nt = GGML_CUDA_FWHT_BLOCK_NT;
++
++        dim3 grid_dims_w(rows, 1, 1);
++        dim3 block_dims_w(nt, 1, 1);
++        const ggml_cuda_kernel_launch_params launch_params_w =
++            ggml_cuda_kernel_launch_params(grid_dims_w, block_dims_w, 0, stream);
++
++        switch (n) {
++            case 1024:
++                ggml_cuda_kernel_launch(fwht_cuda_block<1024, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
++                return true;
++            case 2048:
++                ggml_cuda_kernel_launch(fwht_cuda_block<2048, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
++                return true;
++            case 4096:
++                ggml_cuda_kernel_launch(fwht_cuda_block<4096, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
++                return true;
++            case 8192:
++                ggml_cuda_kernel_launch(fwht_cuda_block<8192, nt, T>, launch_params_w, src_d, dst_d, rows, scale);
++                return true;
++            default:
++                return false;
++        }
+     }
+ }
+ 
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -1312,6 +1312,13 @@
+     }
+ 
+     uint32_t hadamard_version = 0;
++    if (gguf_find_key(ctx, "prism.hadamard.version") < 0) {
++        for (int64_t i = 0; i < gguf_get_n_kv(ctx); ++i) {
++            if (strncmp(gguf_get_key(ctx, i), "prism.hadamard.", 15) == 0) {
++                throw std::runtime_error("prism.hadamard metadata requires prism.hadamard.version");
++            }
++        }
++    }
+     ml.get_key("prism.hadamard.tied_output", hadamard_tied_output, false);
+     if (ml.get_key("prism.hadamard.version", hadamard_version, false)) {
+         if (hadamard_version != 1 && hadamard_version != 2) {
+@@ -1337,7 +1344,8 @@
+         ml.get_key("prism.hadamard.sign_mode", sign_mode);
+         ml.get_arr("prism.hadamard.weight_names", weight_names);
+ 
+-        if (block_size == 0 || (block_size & (block_size - 1)) != 0) {
++        // Bound the persistent dense rotation before computing its square.
++        if (block_size == 0 || block_size > 8192 || (block_size & (block_size - 1)) != 0) {
+             throw std::runtime_error(format("invalid prism.hadamard.block_size: %u", block_size));
+         }
+         if (transform != "normalized-sylvester-walsh-hadamard") {
+@@ -1365,8 +1373,11 @@
+             }
+             size_t off = 0;
+             for (const int32_t width : sign_widths) {
+-                if (width <= 0 || (uint32_t) width % block_size != 0 || off + width > sign_values.size()) {
++                if (width <= 0 || (uint32_t) width % block_size != 0 || (size_t) width > sign_values.size() - off) {
+                     throw std::runtime_error(format("invalid prism.hadamard sign width: %d", width));
++                }
++                if (hadamard_sign_data.count(width)) {
++                    throw std::runtime_error(format("duplicate prism.hadamard sign width: %d", width));
+                 }
+                 auto & vec = hadamard_sign_data[width];
+                 vec.assign(sign_values.begin() + off, sign_values.begin() + off + width);
+@@ -1445,7 +1456,8 @@
+         // tensors consumed by row lookup store latent rows and need the
+         // inverse transform applied to the lookup result instead
+         std::vector<std::string> inverse_names;
+-        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names, false);
++        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names,
++                gguf_find_key(ctx, "prism.hadamard.inverse_weight_names") >= 0);
+         for (const auto & name : inverse_names) {
+             // the graph applies the inverse only to the token-embedding lookup; any
+             // other latent table would load and silently stay rotated
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
 index 96d910a..ad4d766 100644
 --- a/tests/CMakeLists.txt
@@ -1331,3 +1368,163 @@ index 37d3ef0..5fef665 100644
      // FP4 activation precision (default = native W4A4, src1 GGML_PREC_Q8 = W4A8)
      test_cases.emplace_back(new test_mul_mat_w4a8(GGML_TYPE_NVFP4, GGML_TYPE_F32, 32,  1, 256));
      test_cases.emplace_back(new test_mul_mat_w4a8(GGML_TYPE_NVFP4, GGML_TYPE_F32, 32, 32, 256));
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 5fef665..ecf885c 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -9239,8 +9239,54 @@ static const ggml_type other_types[] = {
+ #endif
+ 
+ // Test cases for evaluation: should try to cover edge cases while using small input sizes to keep the runtime low
+-static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
++static std::vector<std::unique_ptr<test_case>> make_test_cases_eval(const char * op_filter = nullptr) {
+     std::vector<std::unique_ptr<test_case>> test_cases;
++    // FWHT tests
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 1, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 64, 1, 64));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 256, 1, 256));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 512, 1, 512));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 32, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 4, 128, {2, 3}));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 256, 512, 256)); // many rows
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 64, 1, 64));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 1, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 1, 256));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 512, 1, 512));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 32, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 512, 256)); // many rows
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 32, 1, 32)); // too small (N<64)
++    test_cases.emplace_back(
++        new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 16384, 1, 16384));               // too big (N>8192)
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 64, 1, 64));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 1, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 1, 256));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 512, 1, 512));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 32, 128));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 4, 128, {2, 3}));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 512, 256)); // many rows
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 1024, 1, 1024));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 2048, 1, 2048));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 4096, 1, 4096));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 8192, 1, 8192));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 1024, 7, 1024));  // many rows
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 1024, 1, 1024));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 2048, 1, 2048));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 4096, 1, 4096));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 8192, 1, 8192));
++    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 1024, 7, 1024));  // many rows
++
++    for (int64_t width : {2048, 4096, 8192}) {
++        for (ggml_type type : {GGML_TYPE_F32, GGML_TYPE_F16}) {
++            test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, type, width, 7, width));
++        }
++    }
++
++    // Do not construct unrelated fixtures for the selected sanitizer suite.
++    if (op_filter && std::string(op_filter) == "MUL_MAT_HADAMARD") {
++        return test_cases;
++    }
++
+     std::default_random_engine rng(0);
+ 
+     // unary ops
+@@ -10177,47 +10223,6 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+     test_cases.emplace_back(new test_gla(GGML_TYPE_F32, 32, 64, 32, 4));
+     test_cases.emplace_back(new test_gla(GGML_TYPE_F32, 32, 64, 128, 4));
+ 
+-    // FWHT tests
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 1, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 64, 1, 64));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 256, 1, 256));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 512, 1, 512));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 32, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 128, 4, 128, {2, 3}));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 256, 512, 256)); // many rows
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 64, 1, 64));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 1, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 1, 256));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 512, 1, 512));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 32, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 512, 256)); // many rows
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 32, 1, 32)); // too small (N<64)
+-    test_cases.emplace_back(
+-        new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 16384, 1, 16384));               // too big (N>8192)
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 64, 1, 64));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 1, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 1, 256));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 512, 1, 512));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 32, 128));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 128, 4, 128, {2, 3}));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 256, 512, 256)); // many rows
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 1024, 1, 1024));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 2048, 1, 2048));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 4096, 1, 4096));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 8192, 1, 8192));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F32, 1024, 7, 1024));  // many rows
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 1024, 1, 1024));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 2048, 1, 2048));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 4096, 1, 4096));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 8192, 1, 8192));
+-    test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, GGML_TYPE_F16, 1024, 7, 1024));  // many rows
+-
+-    for (int64_t width : {2048, 4096, 8192}) {
+-        for (ggml_type type : {GGML_TYPE_F32, GGML_TYPE_F16}) {
+-            test_cases.emplace_back(new test_mul_mat_hadamard(GGML_TYPE_F32, type, width, 7, width));
+-        }
+-    }
+-
+     // FP4 activation precision (default = native W4A4, src1 GGML_PREC_Q8 = W4A8)
+     test_cases.emplace_back(new test_mul_mat_w4a8(GGML_TYPE_NVFP4, GGML_TYPE_F32, 32,  1, 256));
+     test_cases.emplace_back(new test_mul_mat_w4a8(GGML_TYPE_NVFP4, GGML_TYPE_F32, 32, 32, 256));
+@@ -12116,7 +12121,7 @@ static bool test_backend(ggml_backend_t backend, ggml_backend_dev_t dev, test_mo
+         case MODE_TEST:
+         case MODE_GRAD:
+         case MODE_SUPPORT:
+-            test_cases = make_test_cases_eval();
++            test_cases = make_test_cases_eval(op_names_filter);
+             break;
+         case MODE_PERF:
+             test_cases = make_test_cases_perf();
+diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
+index 303c9f4..73af8d5 100644
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -1539,6 +1539,13 @@ static void ggml_cuda_mul_mat_cublas_impl(ggml_backend_cuda_context & ctx, const
+     // Theoretically cublasGemmStridedBatchedEx would always work, even for a single matrix.
+     // However, for some old NVIDIA and AMD GPUs the strided/Ex GEMM is much slower,
+     //     probably because the internal kernel selection logic is suboptimal.
++    cublasMath_t math_mode;
++    const bool strict_f32 = compute_type == GGML_TYPE_F32;
++    if (strict_f32) {
++        CUBLAS_CHECK(cublasGetMathMode(cublas_h, &math_mode));
++        CUBLAS_CHECK(cublasSetMathMode(cublas_h, CUBLAS_PEDANTIC_MATH));
++    }
++
+     if (compute_type == GGML_TYPE_F32 && ne12 == 1 && ne13 == 1) {
+         CUBLAS_CHECK(
+             cublasSgemm(cublas_h, CUBLAS_OP_T, CUBLAS_OP_N,
+@@ -1611,6 +1618,10 @@ static void ggml_cuda_mul_mat_cublas_impl(ggml_backend_cuda_context & ctx, const
+                 CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+     }
+ 
++    if (strict_f32) {
++        CUBLAS_CHECK(cublasSetMathMode(cublas_h, math_mode));
++    }
++
+     // Convert output back to F32 if needed
+     if (cu_data_type != CUDA_R_32F) {
+         const to_fp32_cuda_t to_fp32_cuda = ggml_get_to_fp32_cuda(traits::ggml_type_val);
+@@ -1913,7 +1924,12 @@ static void ggml_cuda_mul_mat(ggml_backend_cuda_context & ctx, const ggml_tensor
+         return;
+     }
+     if (ggml_cuda_should_use_mmf(src0->type, cc, warp_size, src0->ne, src0->nb, ne11, /*mul_mat_id =*/ false)) {
+-        ggml_cuda_mul_mat_f(ctx, src0, src1, nullptr, dst);
++        // TF32 rounding is basis dependent; keep F32 inputs in F32 arithmetic.
++        if (src0->type == GGML_TYPE_F32) {
++            ggml_cuda_mul_mat_cublas(ctx, src0, src1, dst);
++        } else {
++            ggml_cuda_mul_mat_f(ctx, src0, src1, nullptr, dst);
++        }
+         return;
+     }
+     if (ggml_cuda_should_use_mmvq(src0->type, cc, ne11)) {

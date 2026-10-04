@@ -6,7 +6,7 @@ Build cuda_12.8.r12.8/compiler.35404655_0
 NVIDIA (R) Compute Sanitizer
 Copyright (c) 2020-2025 NVIDIA Corporation
 Version 2025.1.0.0 (build 35351055) (public-release)
-Sun Oct  4 02:13:10 2026       
+Sun Oct  4 02:54:19 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 580.173.02             Driver Version: 580.173.02     CUDA Version: 13.0     |
 +-----------------------------------------+------------------------+----------------------+
@@ -15,7 +15,7 @@ Sun Oct  4 02:13:10 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 3060        Off |   00000000:01:00.0  On |                  N/A |
-|  0%   51C    P5             19W /  170W |     576MiB /  12288MiB |     26%      Default |
+|  0%   46C    P5             18W /  170W |     518MiB /  12288MiB |     28%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -24,11 +24,10 @@ Sun Oct  4 02:13:10 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A           40455      G   /usr/lib/xorg/Xorg                      241MiB |
-|    0   N/A  N/A           40716      G   /usr/bin/gnome-shell                     60MiB |
+|    0   N/A  N/A           40455      G   /usr/lib/xorg/Xorg                      199MiB |
+|    0   N/A  N/A           40716      G   /usr/bin/gnome-shell                     52MiB |
 |    0   N/A  N/A           41176      G   /bin/warp-taskbar                         6MiB |
 |    0   N/A  N/A           41263      G   ...exec/xdg-desktop-portal-gnome          2MiB |
-|    0   N/A  N/A           41822      G   ...rack-uuid=3190708988185955192         30MiB |
-|    0   N/A  N/A           42315      G   /usr/bin/nautilus                        17MiB |
-|    0   N/A  N/A           47667      G   ...rack-uuid=3190708988185955192         73MiB |
+|    0   N/A  N/A           47667      G   ...rack-uuid=3190708988185955192         46MiB |
+|    0   N/A  N/A           78262      G   ...rack-uuid=3190708988185955192         75MiB |
 +-----------------------------------------------------------------------------------------+

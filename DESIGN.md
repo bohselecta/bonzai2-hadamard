@@ -49,7 +49,7 @@ These checks do not constitute a general memory budget for arbitrary models or a
 
 PR #29100 adds one row per 256-thread block for widths 1024 through 8192. Each thread holds `N/256` elements in registers. Stages within a warp use XOR shuffles, stages crossing warps use a shared-memory exchange with barriers, and stages above the block width pair registers in the same thread. Values are normalized by `1/sqrt(N)` once. Inputs may be F16 or F32; outputs are F32. The old 64 through 512 path is retained.
 
-The patch is carried verbatim from the identified commit. It was inspected here but could not be compiled or executed on a CUDA device in this CPU-only environment. This limitation is reflected in the status report.
+The wide FWHT patch is carried verbatim from its identified commit. Ubuntu validation now exercises all four widths with F16/F32 and multiple rows under memcheck/racecheck; see UBUNTU_RESULTS.md. Supplemental patch0007 avoids TF32 basis-dependent rounding for ordinary F32 MMF selection by using pedantic cuBLAS F32 math and restoring the prior handle mode. It leaves the FWHT dispatch and quantized kernels intact. Patch0006 limits construction to Hadamard fixtures for the exact sanitizer filter; the default suite retains all original cases.
 
 ## Regression tests
 
@@ -78,6 +78,6 @@ A negative control removed the orphan-version guard only. The suite then failed 
 
 ## Boundaries
 
-This is a text inference integration of the official Q2_0 development file. It does not upstream `PQ2_0`, `PTQ1_0`, or a multimodal projector. Multi-GPU split modes, RPC, LoRA basis compatibility, speculative/MTP decoding, every admitted Qwen architecture, and quantitative equality against the Prism runtime remain outside the completed evidence. The architecture allowlist comes from the source PR; the new tests exercise Llama and Qwen35, not every allowlisted architecture.
+This is a text inference integration of the official Q2_0 development file. It does not upstream `PQ2_0`, `PTQ1_0`, or a multimodal projector. Multi-GPU split modes, RPC, LoRA basis compatibility, speculative/MTP decoding, every admitted Qwen architecture, remain outside the completed evidence. A bounded same-token Prism comparison is recorded in UBUNTU_RESULTS.md; it establishes tolerance-based agreement, not exact equality. The architecture allowlist comes from the source PR; the new tests exercise Llama and Qwen35, not every allowlisted architecture.
 
 Real-model marker/arithmetic checks establish basic operation only. Perplexity/KLD comparisons on identical tokens and host backend testing are necessary before a claim of full upstream readiness.

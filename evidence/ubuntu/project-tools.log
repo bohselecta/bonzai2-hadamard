@@ -1,10 +1,10 @@
 Project API: http://127.0.0.1:8080/v1; model: bonsai2
-Initialized empty Git repository in /tmp/tmpdy2oo8xq/prepared/.git/
-[main (root-commit) a7ae2bf] Initialize private Bonsai 2 project handoff
+Initialized empty Git repository in /tmp/tmp3a5syrp4/prepared/.git/
+[main (root-commit) b0f909a] Initialize private Bonsai 2 project handoff
  1 file changed, 3 insertions(+)
  create mode 100644 README.md
-[work/bonsai2-ubuntu 983d1d2] Add pinned Bonsai 2 integration and Ubuntu CUDA validation
- 69 files changed, 7922 insertions(+), 2 deletions(-)
+[work/bonsai2-ubuntu d8e4d7c] Add pinned Bonsai 2 integration and Ubuntu CUDA validation
+ 170 files changed, 18033 insertions(+), 2 deletions(-)
  create mode 100644 .gitattributes
  create mode 100644 .gitignore
  create mode 100644 CODEX_UBUNTU_TASK.md
@@ -15,6 +15,7 @@ Initialized empty Git repository in /tmp/tmpdy2oo8xq/prepared/.git/
  create mode 100644 PROJECT.md
  create mode 100644 SHA256SUMS
  create mode 100644 STATUS.md
+ create mode 100644 UBUNTU_RESULTS.md
  create mode 100644 evidence/backend-hadamard.log
  create mode 100644 evidence/build-sanitize.log
  create mode 100644 evidence/configure-sanitize.log
@@ -50,14 +51,112 @@ Initialized empty Git repository in /tmp/tmpdy2oo8xq/prepared/.git/
  create mode 100644 evidence/real-model/server.log
  create mode 100644 evidence/sanitize-tests.log
  create mode 100644 evidence/sanitizer-limitations.txt
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT-command.json
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT-exit.json
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT.log
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT_HADAMARD-command.json
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT_HADAMARD-exit.json
+ create mode 100644 evidence/ubuntu/CPU-MUL_MAT_HADAMARD.log
+ create mode 100644 evidence/ubuntu/benchmark-summary.json
+ create mode 100644 evidence/ubuntu/comparison-kld-command.json
+ create mode 100644 evidence/ubuntu/comparison-kld-exit.json
+ create mode 100644 evidence/ubuntu/comparison-kld-initial-command.json
+ create mode 100644 evidence/ubuntu/comparison-kld-initial-exit.json
+ create mode 100644 evidence/ubuntu/comparison-kld-initial.log
+ create mode 100644 evidence/ubuntu/comparison-kld.log
+ create mode 100644 evidence/ubuntu/compute-sanitizer-help-command.json
+ create mode 100644 evidence/ubuntu/compute-sanitizer-help-exit.json
+ create mode 100644 evidence/ubuntu/compute-sanitizer-help.log
+ create mode 100644 evidence/ubuntu/ctest-hadamard-command.json
+ create mode 100644 evidence/ubuntu/ctest-hadamard-exit.json
+ create mode 100644 evidence/ubuntu/ctest-hadamard.log
+ create mode 100644 evidence/ubuntu/cuda-build/MUL_MAT.log
+ create mode 100644 evidence/ubuntu/cuda-build/MUL_MAT_HADAMARD.log
+ create mode 100644 evidence/ubuntu/cuda-build/build.log
+ create mode 100644 evidence/ubuntu/cuda-build/configure.log
+ create mode 100644 evidence/ubuntu/cuda-build/fixtures-cpu.log
+ create mode 100644 evidence/ubuntu/cuda-build/fixtures-gpu.log
+ create mode 100644 evidence/ubuntu/cuda-build/gguf.log
+ create mode 100644 evidence/ubuntu/cuda-fix-build.log
  create mode 100644 evidence/ubuntu/cuda-installer.log
+ create mode 100644 evidence/ubuntu/device-correctness-passed.json
  create mode 100644 evidence/ubuntu/environment.log
  create mode 100644 evidence/ubuntu/eval-source.json
+ create mode 100644 evidence/ubuntu/fixtures-gpu-f32-control-2.log
+ create mode 100644 evidence/ubuntu/fixtures-gpu-f32-control.log
+ create mode 100644 evidence/ubuntu/fixtures-gpu-f32-fixed.log
+ create mode 100644 evidence/ubuntu/fixtures-gpu-fusion-control.log
+ create mode 100644 evidence/ubuntu/fixtures-gpu-initial-failed.log
+ create mode 100644 evidence/ubuntu/fixtures-gpu-tf32-control.log
+ create mode 100644 evidence/ubuntu/memcheck-command.json
+ create mode 100644 evidence/ubuntu/memcheck-exit.json
+ create mode 100644 evidence/ubuntu/memcheck.log
  create mode 100644 evidence/ubuntu/package-initial-SHA256SUMS
  create mode 100644 evidence/ubuntu/package-initial-check.log
+ create mode 100644 evidence/ubuntu/patch-application-initial.log
  create mode 100644 evidence/ubuntu/patch-application.log
+ create mode 100644 evidence/ubuntu/patched-bench-command.json
+ create mode 100644 evidence/ubuntu/patched-bench-exit.json
+ create mode 100644 evidence/ubuntu/patched-bench-memory.json
+ create mode 100644 evidence/ubuntu/patched-bench.json
+ create mode 100644 evidence/ubuntu/patched-bench.log
+ create mode 100644 evidence/ubuntu/patched-ppl-command.json
+ create mode 100644 evidence/ubuntu/patched-ppl-exit.json
+ create mode 100644 evidence/ubuntu/patched-ppl-initial-command.json
+ create mode 100644 evidence/ubuntu/patched-ppl-initial-exit.json
+ create mode 100644 evidence/ubuntu/patched-ppl-initial.log
+ create mode 100644 evidence/ubuntu/patched-ppl.log
  create mode 100644 evidence/ubuntu/project-tools.log
  create mode 100644 evidence/ubuntu/quality-criteria.md
+ create mode 100644 evidence/ubuntu/quality-results.json
+ create mode 100644 evidence/ubuntu/racecheck-command.json
+ create mode 100644 evidence/ubuntu/racecheck-exit.json
+ create mode 100644 evidence/ubuntu/racecheck.log
+ create mode 100644 evidence/ubuntu/real-model-cuda/command.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/json-arithmetic-request.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/json-arithmetic-response.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/json-arithmetic.txt
+ create mode 100644 evidence/ubuntu/real-model-cuda/marker-request.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/marker-response.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/marker.txt
+ create mode 100644 evidence/ubuntu/real-model-cuda/props.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/results.json
+ create mode 100644 evidence/ubuntu/real-model-cuda/server.log
+ create mode 100644 evidence/ubuntu/reference-bench-command.json
+ create mode 100644 evidence/ubuntu/reference-bench-exit.json
+ create mode 100644 evidence/ubuntu/reference-bench-memory.json
+ create mode 100644 evidence/ubuntu/reference-bench.json
+ create mode 100644 evidence/ubuntu/reference-bench.log
+ create mode 100644 evidence/ubuntu/reference-build-retry.log
+ create mode 100644 evidence/ubuntu/reference-build.log
+ create mode 100644 evidence/ubuntu/reference-configure.log
+ create mode 100644 evidence/ubuntu/reference-ppl-command.json
+ create mode 100644 evidence/ubuntu/reference-ppl-exit.json
+ create mode 100644 evidence/ubuntu/reference-ppl-initial-command.json
+ create mode 100644 evidence/ubuntu/reference-ppl-initial-exit.json
+ create mode 100644 evidence/ubuntu/reference-ppl-initial.log
+ create mode 100644 evidence/ubuntu/reference-ppl.log
+ create mode 100644 evidence/ubuntu/sanitize-build.log
+ create mode 100644 evidence/ubuntu/sanitize-configure.log
+ create mode 100644 evidence/ubuntu/sanitize-operators-build-fixed.log
+ create mode 100644 evidence/ubuntu/sanitize-operators-fixed.log
+ create mode 100644 evidence/ubuntu/sanitize-operators-initial-failed.log
+ create mode 100644 evidence/ubuntu/sanitize-tests-fixed.log
+ create mode 100644 evidence/ubuntu/sanitize-tests.log
+ create mode 100644 evidence/ubuntu/service-chat-request.txt
+ create mode 100644 evidence/ubuntu/service-chat-response.json
+ create mode 100644 evidence/ubuntu/service-health-response.json
+ create mode 100644 evidence/ubuntu/service-malformed-json-request.txt
+ create mode 100644 evidence/ubuntu/service-malformed-json-response.json
+ create mode 100644 evidence/ubuntu/service-missing-messages-request.txt
+ create mode 100644 evidence/ubuntu/service-missing-messages-response.json
+ create mode 100644 evidence/ubuntu/service-models-response.json
+ create mode 100644 evidence/ubuntu/service-tests-passed.json
+ create mode 100644 evidence/ubuntu/service-unknown-route-response.json
+ create mode 100644 evidence/ubuntu/service.log
+ create mode 100644 evidence/ubuntu/setup-fixed.log
+ create mode 100644 evidence/ubuntu/setup-initial-failed.log
+ create mode 100644 evidence/ubuntu/setup.log
  create mode 100644 evidence/ubuntu/toolkit.log
  create mode 100644 model.json
  create mode 100644 patches/0001-prism-runtime.patch
@@ -65,6 +164,8 @@ Initialized empty Git repository in /tmp/tmpdy2oo8xq/prepared/.git/
  create mode 100644 patches/0003-metadata-guards.patch
  create mode 100644 patches/0004-regression-tests.patch
  create mode 100644 patches/0005-wide-multirow-tests.patch
+ create mode 100644 patches/0006-sanitizer-fixture-isolation.patch
+ create mode 100644 patches/0007-cuda-f32-precision.patch
  create mode 100644 patches/bonsai2-combined.patch
  create mode 100644 scripts/build.py
  create mode 100644 scripts/download_model.py
@@ -82,6 +183,6 @@ ok
 test_wrong_account_never_creates_repository (__main__.PublisherChecks.test_wrong_account_never_creates_repository) ... ok
 
 ----------------------------------------------------------------------
-Ran 6 tests in 0.209s
+Ran 6 tests in 0.159s
 
 OK
