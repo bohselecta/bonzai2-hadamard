@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -77,6 +78,15 @@ class ProjectChecks(unittest.TestCase):
 
 
 class PublisherChecks(unittest.TestCase):
+    def setUp(self):
+        identity = {"GIT_AUTHOR_NAME": "Bonsai test", "GIT_AUTHOR_EMAIL": "bonsai-test@example.invalid",
+                    "GIT_COMMITTER_NAME": "Bonsai test", "GIT_COMMITTER_EMAIL": "bonsai-test@example.invalid",
+                    "GIT_CONFIG_COUNT": "2", "GIT_CONFIG_KEY_0": "user.name", "GIT_CONFIG_VALUE_0": "Bonsai test",
+                    "GIT_CONFIG_KEY_1": "user.email", "GIT_CONFIG_VALUE_1": "bonsai-test@example.invalid"}
+        self.identity = patch.dict(os.environ, identity)
+        self.identity.start()
+        self.addCleanup(self.identity.stop)
+
     def test_real_git_preparation_preserves_patches_and_rejects_dirty_work(self):
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory) / "prepared"

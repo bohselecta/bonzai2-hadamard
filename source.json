@@ -9,7 +9,7 @@
     "url": "https://github.com/ggml-org/llama.cpp/pull/29100",
     "revision": "7d9305fb51689840aa084eb0a60f4c03950c8988"
   },
-  "patch_sha256": "13ba6fececac6955791628c54c47939dfd30a6c7aa9c8e7acef2b4392f9d22db",
+  "patch_sha256": "2fb35b66e5c1d68128f40c73782c915b49544fe29926afbd720d0630b036e939",
   "patched_files": {
     "ggml/src/ggml-cuda/fwht.cu": "cc8238fc0780408b17cfb40805e4693af7b5290302c7bcd695c3ee97de0e6f1e",
     "src/llama-context.cpp": "61276e15be224f9e4796e80c5f2001ea5c44aa9a8400418843ea6c35427280e1",
@@ -21,6 +21,7 @@
     "src/llama-model.h": "6361fc2886358f1d657c688bad4fd8638d7fd6b1f8b9dda864573ea0c7b645c7",
     "src/models/qwen35.cpp": "06baeb813a9300bc23f15464b8addfb9c66c7a485d16bf6c2a73b4c06240a2d5",
     "tests/CMakeLists.txt": "e79ba9c6c95f26614ea19a68560890a9598f4adc165aec0abdb761a4c8675c11",
-    "tests/test-hadamard.cpp": "55d6bbf8260ff8f9306c30aeef2b1bf4fe0d25b7cdbf9bd67819782516a41909"
+    "tests/test-hadamard.cpp": "55d6bbf8260ff8f9306c30aeef2b1bf4fe0d25b7cdbf9bd67819782516a41909",
+    "tests/test-backend-ops.cpp": "b5658a42bbf1abdc425fc0fe1601cfea7134d42759111dcb00082bf95d44e131"
   }
 }

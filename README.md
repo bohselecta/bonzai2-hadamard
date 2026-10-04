@@ -60,6 +60,7 @@ Use `-ngl 99` with a CUDA/Metal binary on a host with enough device memory. The 
 | `patches/0002-cuda-wide.patch` | Existing PR #29100: CUDA FWHT widths 1024, 2048, 4096, and 8192 |
 | `patches/0003-metadata-guards.patch` | Additional fail-closed metadata validation and bounded rotation allocation |
 | `patches/0004-regression-tests.patch` | Standalone generated GGUF model tests, registered with CTest |
+| `patches/0005-wide-multirow-tests.patch` | Ubuntu validation coverage: all wide widths, F16/F32, seven rows |
 | `patches/bonsai2-combined.patch` | Complete patch used by the installer |
 | `DESIGN.md` | Mathematical basis, ownership, graph integration, and test rationale |
 | `STATUS.md`, `evidence/` | Actual validation results and limits |
