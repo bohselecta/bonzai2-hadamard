@@ -1,3 +1,7 @@
+# Platform status
+
+The integrated package has separate qualified Mac and Ubuntu paths. See [MAC_CLIENT.md](MAC_CLIENT.md) and [MAC_RUN.md](MAC_RUN.md) for the PTQ1_0 Ollama/M4 client, and [UBUNTU_RESULTS.md](UBUNTU_RESULTS.md) for the native Q2_0/CUDA results. The native Metal limitations below apply to the original Q2_0 patch profile, not the separately tested Mac/Ollama runtime.
+
 # Current Ubuntu project status
 
 The required single-GPU text inference gates passed on 2026-10-04: CUDA execution, Compute Sanitizer, ASan/UBSan with leaks, actual checkpoint full offload, pinned Prism quality comparison, hardware benchmarks and local project API. See [UBUNTU_RESULTS.md](UBUNTU_RESULTS.md) for commands, measurements, fixes and evidence. Use [PROJECT.md](PROJECT.md) to run the verified service. Metal and broader unsupported features remain unvalidated.

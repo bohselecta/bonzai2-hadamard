@@ -1,89 +1,68 @@
-# Bonsai 2 Hadamard integration for llama.cpp
+# Bonsai 2 — Mac client and native runtime integration
 
-A reproducible private patch for the official Bonsai 2 27B **Q2_0 development checkpoint**. It combines Prism's existing runtime integration with the wide CUDA FWHT work, adds metadata guards and model-level regression tests, and supplies scripts to apply, build, and validate the result. The build scripts do not submit upstream. The optional `submit_pr.py --publish` script creates a private project handoff PR for Ubuntu validation.
+This repository keeps two verified platform paths together, with separate model and runtime pins. Choose the path for your machine before building or downloading a model.
 
-The exact upstream base, pull request revisions, patch checksum, and patched-file checksums are in `source.json`. The checkpoint revision and SHA-256 are in `model.json`. This is a pinned development integration, not a claim that Bonsai 2 support is merged into mainline.
+| Platform | Model | Runtime | Start here |
+| --- | --- | --- | --- |
+| Apple Silicon Mac | Official PTQ1_0, 5.95 GB | Separate patched Ollama with Prism Metal runner | [Mac client](MAC_CLIENT.md) |
+| Ubuntu / NVIDIA | Pinned Q2_0 development checkpoint, 7.63 GB | Patched native llama.cpp, CUDA | [Ubuntu setup](PROJECT.md), [recorded results](UBUNTU_RESULTS.md) |
+| CPU / native integration development | Same pinned Q2_0 checkpoint | Patched native llama.cpp | [Native integration guide](docs/NATIVE_INTEGRATION.md) |
 
-## Mac Ollama client
+The Mac path has actual M4 Metal inference, streaming, cancellation, restart recovery and memory observations. The Ubuntu evidence records completed RTX 3060 qualification on its original host. These checks apply to their respective model/runtime combinations; they do not transfer automatically between platforms.
 
-The verified compact PTQ1_0 Mac client uses a separately built actual Ollama/Metal runtime. See [MAC_CLIENT.md](MAC_CLIENT.md) for Launch Bonsai.command, the local chat at http://127.0.0.1:8765, source/model pins, acceptance evidence and limits. The Ubuntu Q2_0 instructions below retain their original scope.
+## Mac chat
 
-## Project quick start
-
-See `PROJECT.md` for the executable Ubuntu setup, local project API, and private handoff PR submission. On the Ubuntu GPU host, run `python3 scripts/project.py setup --backend cuda`, then `python3 scripts/project.py serve`. The completed Ubuntu acceptance results and measurements are in `UBUNTU_RESULTS.md`; `CODEX_UBUNTU_TASK.md` retains the reproducibility checklist.
-
-## Use
-
-Requires Python 3.9+, Git, CMake, a C/C++ compiler, and Ninja or Make. CUDA additionally needs the CUDA toolkit and an NVIDIA GPU. Metal needs an Apple Silicon macOS host with the Xcode command line tools. Builds and downloads run on your own machine.
-
-From this directory, choose one backend:
+On the prepared Mac, double-click **Launch Bonsai.command** or run:
 
 ```sh
-python3 scripts/build.py --directory ../llama-bonsai2 --backend cpu --jobs 4
+python3 scripts/mac_bonsai.py run
 ```
 
-For an NVIDIA host use `--backend cuda`; for an Apple Silicon host use `--backend metal`. The script clones a separate pinned checkout, verifies and applies the combined patch, builds the tools, and runs the selected backend's operator and model tests. It refuses an unrelated dirty checkout. Repeating it with the exact patch already applied is supported. `--apply-only` skips compilation; `--cmake /path/to/cmake` and `--ninja /path/to/ninja` support nonstandard installations.
+Open http://127.0.0.1:8765 . To stop this client and its dedicated backend, use **Stop Bonsai.command** or `python3 scripts/mac_bonsai.py stop`. First-time build/setup instructions, required model bytes and limits are in [MAC_CLIENT.md](MAC_CLIENT.md).
 
-On a CUDA host with several cards, set `CUDA_VISIBLE_DEVICES=0` before running the build/test commands to keep the experiment on one GPU. The real-model verifier explicitly selects `CUDA0` or `MTL0` in GPU mode.
+The installed Ollama app is preserved. This client uses its own source build, local port and model store. Model weights and generated runtime files are excluded from Git.
 
-The build includes `llama-server`, `llama-cli`, `llama-perplexity`, and `llama-bench`. The tools are under `../llama-bonsai2/build-bonsai2-BACKEND/bin/`; test logs are in the adjacent `evidence/` directory. It disables the optional web UI download. The server still exposes its inference API.
+## Ubuntu native service
 
-Download the **7,626,008,928-byte** public Q2_0 checkpoint with an exact revision and checksum:
+On the selected authorized Ubuntu GPU host:
 
 ```sh
-python3 scripts/download_model.py --directory ../models-bonsai2
+python3 scripts/project.py setup --backend cuda
+python3 scripts/project.py serve
 ```
 
-Then exercise the actual model, substituting your backend and binary path as appropriate:
+Read [PROJECT.md](PROJECT.md) for host prerequisites and recovery. This launcher targets Linux; it is not the Mac/Ollama launcher. Preserve the original hardware/source evidence in [UBUNTU_RESULTS.md](UBUNTU_RESULTS.md).
 
-```sh
-python3 scripts/verify_model.py \
-  --binary ../llama-bonsai2/build-bonsai2-cpu/bin/llama-server \
-  --model ../models-bonsai2/Ternary-Bonsai-2-27B-Q2_0-prism-fork-required.gguf \
-  --backend cpu --output ../bonsai2-model-evidence
-```
+## Repository and branches
 
-Verification starts a server on loopback, checks the checkpoint hash and transform load record, and tests an exact marker plus constrained JSON arithmetic. GPU mode also requires the requested device and full layer offload in the log. Requests, responses, timing, and server logs are retained. A fresh output directory is required to preserve previous evidence. It stops its server on exit. `--architect` optionally generates a longer Systems Architect prompt; that answer needs a human quality review. On a CPU the 27B checkpoint can be slow, and memory pressure makes timing unsuitable for a performance comparison.
+Canonical repository: [bohselecta/bonzai2-hadamard](https://github.com/bohselecta/bonzai2-hadamard).
 
-For interactive local use after verification:
+- `main`: the integrated, documented package containing both completed platform paths. It remains the default checkout.
+- `work/bonsai2-mac-ollama`: the accepted Mac implementation checkpoint, starting from the completed Ubuntu source and adding the isolated Ollama/Metal client.
+- `work/bonsai2-ubuntu`: the preserved native CUDA qualification checkpoint. Mac delivery does not overwrite its history.
 
-```sh
-../llama-bonsai2/build-bonsai2-cpu/bin/llama-server \
-  -m ../models-bonsai2/Ternary-Bonsai-2-27B-Q2_0-prism-fork-required.gguf \
-  --host 127.0.0.1 -ngl 0 -c 2048 -np 1 --fit off \
-  --jinja --reasoning off --reasoning-budget 0
-```
+Use the platform branches to resume work within that platform's scope; integrate verified changes back into `main`. Branch presence is not proof of new hardware qualification. Keep new platform evidence separate and preserve the accepted model/runtime identities.
 
-Use `-ngl 99` with a CUDA/Metal binary on a host with enough device memory. The program's ordinary memory and context limits still apply.
+## File organization and pins
 
-## What is included
-
-| File | Purpose |
+| Area | Contents |
 | --- | --- |
-| `patches/0001-prism-runtime.patch` | Existing Prism PR #29600: metadata, signs, graph transforms, inverse embedding lookup, tied output, grouped GDN, and transform coverage check |
-| `patches/0002-cuda-wide.patch` | Existing PR #29100: CUDA FWHT widths 1024, 2048, 4096, and 8192 |
-| `patches/0003-metadata-guards.patch` | Additional fail-closed metadata validation and bounded rotation allocation |
-| `patches/0004-regression-tests.patch` | Standalone generated GGUF model tests, registered with CTest |
-| `patches/0005-wide-multirow-tests.patch` | Ubuntu validation coverage: all wide widths, F16/F32, seven rows |
-| `patches/0006-sanitizer-fixture-isolation.patch` | Scope exact Hadamard filter construction to avoid unrelated fixture UB |
-| `patches/0007-cuda-f32-precision.patch` | Preserve F32 arithmetic across basis changes on CUDA |
-| `patches/bonsai2-combined.patch` | Complete patch used by the installer |
-| `DESIGN.md` | Mathematical basis, ownership, graph integration, and test rationale |
-| `STATUS.md`, `evidence/` | Actual validation results and limits |
-| `NEXT_AGENT.md` | Remaining hardware and upstream review work |
+| `client/`, Launch/Stop commands, `scripts/mac_bonsai.py` | Mac chat surface and lifecycle |
+| `mac-runtime.json`, `evidence/mac/model.json` | Exact Mac Ollama, Prism and PTQ1_0 model pins |
+| `scripts/project.py`, `build.py`, `download_model.py`, `verify_model.py` | Native Q2_0 build/download/service/verification |
+| `source.json`, `model.json`, numbered runtime patches | Native Q2_0 source/model contract; preserved for Ubuntu reproducibility |
+| `patches/mac-ollama-file-types.patch` | Small Mac Ollama metadata-label correction |
+| `evidence/mac/`, `evidence/ubuntu/` | Platform-specific observed evidence |
+| Root legacy `evidence/` | Original CPU integration evidence |
+| `docs/NATIVE_INTEGRATION.md`, `DESIGN.md`, `STATUS.md` | Native implementation details and scoped validation history |
+| `MAC_RUN.md` | Mac execution checkpoint and acceptance/recovery record |
+| `SHA256SUMS` | Packaged source/document/evidence integrity |
+| Ignored `runtime/`, `models/`, `.state/` | Local build checkouts, downloaded weights and runtime state |
 
-The numbered patches may be applied in order instead of the combined patch. Do not apply both routes to one checkout.
+Script paths and the original manifests remain stable so the recorded native reproduction commands continue to work. Historical private-handoff publisher instructions are retained in PROJECT.md for provenance; ordinary work now uses this repository and its existing branches. Do not rerun the publisher to create duplicate repositories.
 
-## Scope
+## License and scope
 
-The supported experiment is the pinned text-only Q2_0 checkpoint, ordinary inference, and CPU or one CUDA/Metal GPU. Fork-specific `PQ2_0` and `PTQ1_0`, vision projectors, multi-GPU split modes, RPC, LoRA adapters, and speculative/MTP decoding are outside this package's validation. The source PR includes an MTP embedding path, but this package does not certify it.
+Repository code is MIT; attribution is in [NOTICE](NOTICE). Model weights are downloaded separately under their official Apache-2.0 terms. Native integration details and upstream contribution boundaries are in [the native guide](docs/NATIVE_INTEGRATION.md).
 
-Read `STATUS.md` before using a GPU build. CUDA hardware tests and comparative perplexity/KLD passed on the documented RTX 3060; Metal remains unvalidated. Neither a fluent response nor a CPU test certifies an untested GPU kernel.
-
-## Attribution and contribution
-
-The runtime is based on [Prism's existing PR #29600](https://github.com/ggml-org/llama.cpp/pull/29600), pinned to `fc50db4300e04a3af12e5fd1b8042afa87b1f1b7`. The CUDA change is from [PR #29100](https://github.com/ggml-org/llama.cpp/pull/29100), pinned to `7d9305fb51689840aa084eb0a60f4c03950c8988`. The guards, regression tests, reproducibility scripts, and validation notes were prepared with substantial AI assistance for private use. Existing work is attributed, not presented as newly authored here.
-
-llama.cpp's [AGENTS.md](https://github.com/ggml-org/llama.cpp/blob/836d57176dc699a726c55418e4f96b8ca628e1bf/AGENTS.md) prohibits automated commits and PR submissions, and states that private forks are exempt from its contributor requirements. This package takes the private-use route allowed by the request. If a human chooses to contribute later, they must understand and own the changes, coordinate with the existing PR authors, complete the hardware gates, disclose AI assistance as required, and write their own submission text. The optional publisher supplies private project handoff text only; it does not produce or submit an upstream contribution.
-
-Code is distributed under the included MIT license; see `NOTICE`. Model weights are not bundled. The official model repository declares Apache-2.0, and its terms apply separately to downloaded weights.
+The Mac deliverable is bounded text chat. Tools, vision, adapters and full Desktop integration are not qualified. Read the platform documentation for precise PASS, NOT_RUN and hardware limitations.

@@ -65,3 +65,7 @@ Scope limits/NOT_RUN: tools, vision, adapters, full Desktop integration/DL-24, b
 No remaining human action for using this bounded local client. No remote push, PR, merge or deployment performed. Origin has only work/bonsai2-ubuntu as its default branch; no main was invented or Ubuntu branch overwritten. Local Mac source is reviewable on work/bonsai2-mac-ollama. Latest local revision is the Git HEAD of that branch; source/runtime/model identities above remain pinned independently.
 
 Safe resume: inspect git status/log and this checkpoint; use the launch/stop commands for runtime checks. Rebuild only if source changes require it. Do not continue another portfolio repository without resolving that next unit's task/checkout/authority.
+
+## GitHub organization update
+
+User authorized publishing to GitHub, then clarified that the platform work should be organized independently rather than treating main as the sole branch. The verified implementation e39e35dba133b813aec290ff7fe6da5bb861a7fe was published to main, which became the default branch. The organization update retains main as the combined package and publishes the accepted Mac implementation as work/bonsai2-mac-ollama. The Ubuntu branch remains at addfbe01ddad653582f5312f88017f07aa9a0512. README now routes by platform, with the full Q2_0 integration guide in docs/NATIVE_INTEGRATION.md and historical private-publisher context explicitly labeled. Script/manifests/runtime behavior are unchanged by this documentation update. No new deployment or workflow is introduced.

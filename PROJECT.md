@@ -1,3 +1,5 @@
+> Current repository: [bohselecta/bonzai2-hadamard](https://github.com/bohselecta/bonzai2-hadamard). This document covers the native Q2_0 Linux path. Original host paths and private handoff references below are retained historical context; use ordinary Git in the current checkout and do not create another handoff. For Mac/Ollama use [MAC_CLIENT.md](MAC_CLIENT.md).
+
 # Use Bonsai 2 in your project
 
 This project contains the verified CPU and single RTX 3060 CUDA integration of the official pinned Q2_0 checkpoint. All required Ubuntu gates passed; see `UBUNTU_RESULTS.md`.
