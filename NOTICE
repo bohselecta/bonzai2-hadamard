@@ -1,0 +1,17 @@
+This package contains changes derived from llama.cpp and open upstream pull requests under the MIT license in LICENSE.
+
+Upstream base:
+https://github.com/ggml-org/llama.cpp
+836d57176dc699a726c55418e4f96b8ca628e1bf
+
+Prism Bonsai 2 model integration, existing work by Prism contributors:
+https://github.com/ggml-org/llama.cpp/pull/29600
+fc50db4300e04a3af12e5fd1b8042afa87b1f1b7
+
+CUDA wide FWHT, existing upstream contributor work:
+https://github.com/ggml-org/llama.cpp/pull/29100
+7d9305fb51689840aa084eb0a60f4c03950c8988
+
+Additional metadata guards, generated-model regression tests, packaging scripts, and validation documentation were prepared with substantial OpenAI Codex assistance for private use. They are made available under the included MIT license.
+
+No model weights are distributed in this package. The public Prism model repository declares Apache-2.0; its license and terms apply separately to downloaded weights.

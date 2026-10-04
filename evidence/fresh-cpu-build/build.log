@@ -1,0 +1,37 @@
+[1/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml.cpp.o
+[2/234] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-alloc.c.o
+[3/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend.cpp.o
+[4/234] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml.c.o
+[5/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-threading.cpp.o
+[6/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-opt.cpp.o
+[7/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend-meta.cpp.o
+[8/234] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.c.o
+[9/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.cpp.o
+[10/234] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/gguf.cpp.o
+[11/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/hbm.cpp.o
+[12/234] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-quants.c.o
+[13/234] Linking CXX shared library bin/libggml-base.so.0.25.3
+[14/234] Creating library symlink bin/libggml-base.so.0 bin/libggml-base.so
+[15/234] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/quants.c.o
+[16/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/traits.cpp.o
+[17/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/amx.cpp.o
+[18/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/mmq.cpp.o
+[19/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/tiled/tiled-kernel.cpp.o
+[20/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/binary-ops.cpp.o
+[21/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/repack.cpp.o
+[22/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/tiled/tiled.cpp.o
+[23/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/vec.cpp.o
+[24/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/unary-ops.cpp.o
+[25/234] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/arch/x86/quants.c.o
+[26/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/llamafile/sgemm.cpp.o
+[27/234] Building CXX object ggml/src/CMakeFiles/ggml.dir/ggml-backend-dl.cpp.o
+[28/234] Building CXX object ggml/src/CMakeFiles/ggml.dir/ggml-backend-reg.cpp.o
+[29/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/arch/x86/repack.cpp.o
+[30/234] Building CXX object src/CMakeFiles/llama.dir/Unity/unity_9_cxx.cxx.o
+[31/234] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ops.cpp.o
+[32/234] Linking CXX shared library bin/libggml-cpu.so.0.25.3
+[33/234] Creating library symlink bin/libggml-cpu.so.0 bin/libggml-cpu.so
+[34/234] Linking CXX shared library bin/libggml.so.0.25.3
+[35/234] Creating library symlink bin/libggml.so.0 bin/libggml.so
+[36/234] Building CXX object src/CMakeFiles/llama.dir/Unity/unity_8_cxx.cxx.o
+[37/234] Building CXX object src/CMakeFiles/llama.dir/Unity/unity_7_cxx.cxx.o

@@ -1,0 +1,2 @@
+Build and selected-backend checks passed. Binaries: /workspace/scratch/0ff4954a5d8c/apply-check/build-bonsai2-cpu/bin. Evidence: /workspace/scratch/0ff4954a5d8c/apply-check/build-bonsai2-cpu/evidence
+The 27B checkpoint and host performance require scripts/verify_model.py next.

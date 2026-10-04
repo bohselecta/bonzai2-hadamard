@@ -1,0 +1,36 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "BONSAI_OK"
+      }
+    }
+  ],
+  "created": 1791053004,
+  "model": "bonsai2",
+  "system_fingerprint": "b1-836d571",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 6,
+    "prompt_tokens": 23,
+    "total_tokens": 29,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "id": "chatcmpl-Lm6HoFahsKoAWJ6sJZnnlGSNi80Ka6or",
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 23,
+    "prompt_ms": 78784.016,
+    "prompt_per_token_ms": 3425.3920000000003,
+    "prompt_per_second": 0.291937389939604,
+    "predicted_n": 6,
+    "predicted_ms": 20152.819,
+    "predicted_per_token_ms": 4030.5638,
+    "predicted_per_second": 0.24810424784741034
+  }
+}

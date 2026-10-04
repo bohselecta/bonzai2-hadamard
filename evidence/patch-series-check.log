@@ -1,0 +1,5 @@
+PASS 0001-prism-runtime.patch
+PASS 0002-cuda-wide.patch
+PASS 0003-metadata-guards.patch
+PASS 0004-regression-tests.patch
+PASS all 11 patched files match the combined patch

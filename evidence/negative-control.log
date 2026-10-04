@@ -1,0 +1,11 @@
+FAIL: missing-version: malformed model was accepted
+PASS identity: max_abs=3.8146973e-06 relative_l2=5.8853483e-06 (224 logits)
+PASS explicit-signs: max_abs=1.1920929e-07 relative_l2=2.1180983e-07 (224 logits)
+PASS inverse-lookup: max_abs=1.7881393e-07 relative_l2=3.3001499e-07 (224 logits)
+PASS tied-output-v2: max_abs=2.3841858e-07 relative_l2=1.3790549e-07 (224 logits)
+PASS q2-0: max_abs=0.0085972399 relative_l2=0.0088089487 (224 logits)
+PASS q8-kv: max_abs=1.0430813e-07 relative_l2=2.1278473e-07 (224 logits)
+PASS moe-matmul-id: max_abs=1.6391277e-07 relative_l2=2.9494925e-07 (224 logits)
+PASS qwen35-hybrid: max_abs=5.4359436e-05 relative_l2=4.6553335e-05 (224 logits)
+PASS qwen35-grouped-gdn: max_abs=5.4299831e-05 relative_l2=4.6099109e-05 (224 logits)
+PASS block-128: max_abs=1.7881393e-07 relative_l2=2.8970599e-07 (224 logits)

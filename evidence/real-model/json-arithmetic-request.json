@@ -1,0 +1,32 @@
+{
+  "model": "bonsai2",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Calculate 17 + 26. Return a JSON object with its integer sum."
+    }
+  ],
+  "temperature": 0,
+  "seed": 42,
+  "max_tokens": 128,
+  "cache_prompt": false,
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "sum",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sum": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sum"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

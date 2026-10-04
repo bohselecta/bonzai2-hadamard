@@ -1,0 +1,7 @@
+*.gguf
+__pycache__/
+*.pyc
+.venv/
+project-state.json
+project-state.json.tmp
+UBUNTU_RESULTS_RAW/

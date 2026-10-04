@@ -1,0 +1,10 @@
+Test project /workspace/scratch/0ff4954a5d8c/apply-check/build-bonsai2-cpu
+    Start 17: test-hadamard
+1/1 Test #17: test-hadamard ....................   Passed    0.51 sec
+
+100% tests passed out of 1
+
+Label Time Summary:
+main    =   0.51 sec*proc (1 test)
+
+Total Test time (real) =   0.52 sec

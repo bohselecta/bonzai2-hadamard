@@ -1,0 +1,27 @@
+PASS identity: max_abs=3.8146973e-06 relative_l2=5.8853483e-06 (224 logits)
+PASS explicit-signs: max_abs=1.1920929e-07 relative_l2=2.1180983e-07 (224 logits)
+PASS inverse-lookup: max_abs=1.7881393e-07 relative_l2=3.3001499e-07 (224 logits)
+PASS tied-output-v2: max_abs=2.3841858e-07 relative_l2=1.3790549e-07 (224 logits)
+PASS q2-0: max_abs=0.0085972399 relative_l2=0.0088089487 (224 logits)
+PASS q8-kv: max_abs=9.6857548e-08 relative_l2=2.0196882e-07 (224 logits)
+PASS moe-matmul-id: max_abs=1.6391277e-07 relative_l2=2.9494925e-07 (224 logits)
+PASS qwen35-hybrid: max_abs=5.4389238e-05 relative_l2=4.6119765e-05 (224 logits)
+PASS qwen35-grouped-gdn: max_abs=5.4329634e-05 relative_l2=4.6109658e-05 (224 logits)
+PASS block-128: max_abs=1.7881393e-07 relative_l2=2.8970599e-07 (224 logits)
+PASS reject missing-version
+PASS reject bad-version
+PASS reject oversized-block
+PASS reject zero-block
+PASS reject non-power-block
+PASS reject bad-transform
+PASS reject bad-axis
+PASS reject bad-sign-mode
+PASS reject bad-sign-value
+PASS reject duplicate-sign-width
+PASS reject wrong-sign-type
+PASS reject short-sign-table
+PASS reject unverified-weight
+PASS reject unknown-weight
+PASS reject bad-inverse-type
+PASS reject bad-inverse-name
+PASS reject untagged-tied-output

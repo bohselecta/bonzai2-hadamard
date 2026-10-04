@@ -1,0 +1,5 @@
+Debug build: AddressSanitizer and UndefinedBehaviorSanitizer enabled for llama and ggml.
+LeakSanitizer could not inspect processes in this execution environment:
+"Can't open /proc/570/task for reading."
+"LeakSanitizer has encountered a fatal error."
+Address/undefined checks were rerun with ASAN_OPTIONS=detect_leaks=0 and UBSAN_OPTIONS=halt_on_error=1. Leak detection is not certified.

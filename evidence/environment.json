@@ -1,0 +1,16 @@
+{
+  "validated_at_utc": "2026-10-03T18:47:53.719648+00:00",
+  "os": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+  "memory_limit_bytes": 8589934592,
+  "gpu_backends_available": false,
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "cmake": "cmake version 4.4.3",
+  "checkpoint_sha256_verified": true,
+  "real_model_backends": [
+    "CPU"
+  ],
+  "performance_comparison_valid": false,
+  "performance_note": "CPU-only, 8 GiB memory limit; sanitizer compilation overlapped with real-model checks. Recorded timings are smoke-test observations, not comparative benchmarks."
+}

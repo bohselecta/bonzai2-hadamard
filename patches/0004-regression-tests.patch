@@ -1,0 +1,478 @@
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 96d910a..ad4d766 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -150,6 +150,7 @@ endif ()
+ 
+ llama_build(test-recurrent-state-rollback.cpp)
+ llama_build(test-save-load-state.cpp)
++llama_build_and_test(test-hadamard.cpp)
+ 
+ if (NOT WIN32 OR NOT BUILD_SHARED_LIBS)
+     # these tests are disabled on Windows because they use internal functions not exported with LLAMA_API (when building with shared libraries)
+diff --git a/tests/test-hadamard.cpp b/tests/test-hadamard.cpp
+new file mode 100644
+index 0000000..cdf05b9
+--- /dev/null
++++ b/tests/test-hadamard.cpp
+@@ -0,0 +1,460 @@
++#include "llama.h"
++#include "ggml.h"
++#include "ggml-backend.h"
++#include "gguf.h"
++
++#include <algorithm>
++#include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <filesystem>
++#include <functional>
++#include <map>
++#include <memory>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++using model_ptr = std::unique_ptr<llama_model, decltype(&llama_model_free)>;
++using context_ptr = std::unique_ptr<llama_context, decltype(&llama_free)>;
++
++static std::string error_log;
++
++static void require(bool ok, const std::string & message) {
++    if (!ok) {
++        throw std::runtime_error(message);
++    }
++}
++
++struct fixture_config {
++    bool folded = false;
++    bool explicit_signs = false;
++    bool inverse = false;
++    bool tied = false;
++    bool qwen35 = false;
++    bool grouped = false;
++    bool moe = false;
++    bool quantized = false;
++    int block = 64;
++};
++
++static std::vector<int32_t> make_signs(int width, bool explicit_signs) {
++    std::vector<int32_t> signs(width, 1);
++    if (explicit_signs) {
++        for (int i = 0; i < width; ++i) {
++            signs[i] = (i % 7 < 3) ? -1 : 1;
++        }
++    }
++    return signs;
++}
++
++// Dense Sylvester reference, independent of the runtime's butterfly implementation.
++static std::vector<float> rotate(const std::vector<float> & row, int block) {
++    std::vector<float> out(row.size());
++    const double scale = 1.0 / std::sqrt(block);
++    for (size_t off = 0; off < row.size(); off += block) {
++        for (int i = 0; i < block; ++i) {
++            double sum = 0.0;
++            for (int j = 0; j < block; ++j) {
++                unsigned parity = (unsigned) (i & j);
++                parity ^= parity >> 16;
++                parity ^= parity >> 8;
++                parity ^= parity >> 4;
++                parity ^= parity >> 2;
++                parity ^= parity >> 1;
++                sum += (parity & 1) ? -row[off + j] : row[off + j];
++            }
++            out[off + i] = (float) (sum * scale);
++        }
++    }
++    return out;
++}
++
++struct fixture {
++    gguf_context * meta = gguf_init_empty();
++    ggml_context * tensors = nullptr;
++    std::vector<std::vector<float>> floats;
++    std::vector<std::vector<uint8_t>> packed;
++    std::vector<std::string> forward_names;
++    std::map<int, std::vector<int32_t>> sign_data;
++    fixture_config config;
++    uint32_t rng = 42;
++
++    explicit fixture(fixture_config cfg) : config(cfg) {
++        ggml_init_params params { 64 * ggml_tensor_overhead(), nullptr, true };
++        tensors = ggml_init(params);
++        require(meta && tensors, "fixture allocation failed");
++        const std::string arch = cfg.qwen35 ? "qwen35" : "llama";
++        gguf_set_val_str(meta, "general.architecture", arch.c_str());
++        gguf_set_val_str(meta, "tokenizer.ggml.model", "none");
++        auto u32 = [&](const char * name, uint32_t value) {
++            gguf_set_val_u32(meta, (arch + "." + name).c_str(), value);
++        };
++        u32("context_length", 64);
++        u32("embedding_length", 128);
++        u32("block_count", cfg.qwen35 ? 2 : 1);
++        u32("feed_forward_length", 256);
++        u32("attention.head_count", 4);
++        u32("attention.head_count_kv", 4);
++        u32("rope.dimension_count", 32);
++        u32("vocab_size", 32);
++        gguf_set_val_f32(meta, (arch + ".attention.layer_norm_rms_epsilon").c_str(), 1e-5f);
++        if (cfg.moe) {
++            u32("expert_count", 2);
++            u32("expert_used_count", 2);
++        }
++        if (cfg.qwen35) {
++            const int32_t sections[] = { 4, 4, 8, 0 };
++            gguf_set_arr_data(meta, "qwen35.rope.dimension_sections", GGUF_TYPE_INT32, sections, 4);
++            u32("ssm.conv_kernel", 4);
++            u32("ssm.inner_size", 192);
++            u32("ssm.state_size", 32);
++            u32("ssm.time_step_rank", 6);
++            u32("ssm.group_count", 2);
++            u32("full_attention_interval", 2);
++        }
++
++        add("token_embd.weight", 128, 32, 1, false, cfg.inverse);
++        add("output_norm.weight", 128);
++        if (!cfg.tied) {
++            add("output.weight", 128, 32, 1, true);
++        }
++        for (int il = 0; il < (cfg.qwen35 ? 2 : 1); ++il) {
++            const std::string p = "blk." + std::to_string(il) + ".";
++            add(p + "attn_norm.weight", 128);
++            add(p + (cfg.qwen35 ? "post_attention_norm.weight" : "ffn_norm.weight"), 128);
++            if (cfg.qwen35 && il == 0) {
++                add(p + "attn_qkv.weight", 128, 320, 1, true);
++                add(p + "attn_gate.weight", 128, 192, 1, true);
++                add(p + "ssm_conv1d.weight", 4, 320);
++                add(p + "ssm_dt.bias", 6);
++                add(p + "ssm_a", 6);
++                add(p + "ssm_beta.weight", 128, 6);
++                add(p + "ssm_alpha.weight", 128, 6);
++                add(p + "ssm_norm.weight", 32);
++                add(p + "ssm_out.weight", 192, 128, 1, true);
++            } else {
++                add(p + "attn_q.weight", 128, cfg.qwen35 ? 256 : 128, 1, true);
++                add(p + "attn_k.weight", 128, 128, 1, true);
++                add(p + "attn_v.weight", 128, 128, 1, true);
++                add(p + "attn_output.weight", 128, 128, 1, true);
++                if (cfg.qwen35) {
++                    add(p + "attn_q_norm.weight", 32);
++                    add(p + "attn_k_norm.weight", 32);
++                }
++            }
++            if (cfg.moe) {
++                add(p + "ffn_gate_inp.weight", 128, 2);
++                add(p + "ffn_gate_exps.weight", 128, 256, 2, true);
++                add(p + "ffn_up_exps.weight", 128, 256, 2, true);
++                add(p + "ffn_down_exps.weight", 256, 128, 2, true);
++            } else {
++                add(p + "ffn_gate.weight", 128, 256, 1, true);
++                add(p + "ffn_up.weight", 128, 256, 1, true);
++                add(p + "ffn_down.weight", 256, 128, 1, true);
++            }
++        }
++        if (cfg.folded) {
++            gguf_set_val_u32(meta, "prism.hadamard.version", cfg.tied ? 2 : 1);
++            gguf_set_val_bool(meta, "prism.hadamard.tied_output", cfg.tied);
++            gguf_set_val_u32(meta, "prism.hadamard.block_size", cfg.block);
++            gguf_set_val_str(meta, "prism.hadamard.transform", "normalized-sylvester-walsh-hadamard");
++            gguf_set_val_str(meta, "prism.hadamard.axis", "input-last-dimension");
++            gguf_set_val_str(meta, "prism.hadamard.sign_mode", cfg.explicit_signs ? "explicit" : "identity");
++            std::vector<const char *> names;
++            for (const auto & name : forward_names) {
++                names.push_back(name.c_str());
++            }
++            gguf_set_arr_str(meta, "prism.hadamard.weight_names", names.data(), names.size());
++            if (cfg.inverse) {
++                const char * inverse_names[] = { "token_embd.weight" };
++                gguf_set_arr_str(meta, "prism.hadamard.inverse_weight_names", inverse_names, 1);
++            }
++            if (cfg.explicit_signs) {
++                std::vector<int32_t> widths, values;
++                for (const auto & entry : sign_data) {
++                    widths.push_back(entry.first);
++                    values.insert(values.end(), entry.second.begin(), entry.second.end());
++                }
++                gguf_set_arr_data(meta, "prism.hadamard.sign_widths", GGUF_TYPE_INT32, widths.data(), widths.size());
++                gguf_set_arr_data(meta, "prism.hadamard.sign_values", GGUF_TYPE_INT32, values.data(), values.size());
++            }
++            gguf_set_val_bool(meta, "prism.hadamard.gdn_v_grouped", cfg.grouped);
++        }
++    }
++
++    ~fixture() {
++        gguf_free(meta);
++        ggml_free(tensors);
++    }
++
++    float random_value() {
++        rng = rng * 1664525u + 1013904223u;
++        return ((int) ((rng >> 16) % 2001) - 1000) / 32000.0f;
++    }
++
++    void add(const std::string & name, int width, int rows = 1, int experts = 1, bool forward = false, bool inverse = false) {
++        ggml_tensor * tensor = ggml_new_tensor_3d(tensors, GGML_TYPE_F32, width, rows, experts);
++        ggml_set_name(tensor, name.c_str());
++        std::vector<float> data((size_t) width * rows * experts);
++        const bool norm = name.find("norm.weight") != std::string::npos;
++        for (auto & value : data) {
++            value = norm ? 1.0f : name.find("ssm_a") != std::string::npos ? -1.0f : random_value();
++        }
++        const auto signs = make_signs(width, config.explicit_signs);
++        if (forward || inverse) {
++            sign_data[width] = signs;
++            const bool grouped = config.grouped && name.find(".ssm_out.") != std::string::npos;
++            for (int r = 0; r < rows * experts; ++r) {
++                std::vector<float> row(data.begin() + r * width, data.begin() + (r + 1) * width);
++                if (config.quantized && forward) {
++                    // Generate exactly representable rotated trits, then derive the dense primal model.
++                    for (auto & value : row) {
++                        rng = rng * 1664525u + 1013904223u;
++                        value = ((int) ((rng >> 16) % 3) - 1) / 32.0f;
++                    }
++                    if (!config.folded) {
++                        row = rotate(row, config.block);
++                        for (int i = 0; i < width; ++i) {
++                            row[i] *= signs[i];
++                        }
++                    }
++                } else if (config.folded) {
++                    if (grouped) {
++                        require(width == 192, "invalid grouped fixture width");
++                        auto original = row;
++                        for (int key = 0; key < 2; ++key) {
++                            for (int rep = 0; rep < 3; ++rep) {
++                                for (int hd = 0; hd < 32; ++hd) {
++                                    row.at(hd + 32 * (rep + 3 * key)) = original.at(hd + 32 * (key + 2 * rep));
++                                }
++                            }
++                        }
++                    }
++                    for (int i = 0; i < width; ++i) {
++                        row[i] *= signs[i];
++                    }
++                    row = rotate(row, config.block);
++                }
++                std::copy(row.begin(), row.end(), data.begin() + r * width);
++            }
++        }
++        if (config.folded && forward) {
++            forward_names.push_back(name);
++        }
++        if (config.folded && config.quantized && forward) {
++            packed.emplace_back(ggml_row_size(GGML_TYPE_Q2_0, width) * rows * experts);
++            const size_t written = ggml_quantize_chunk(GGML_TYPE_Q2_0, data.data(), packed.back().data(), 0, rows * experts, width, nullptr);
++            require(written == packed.back().size(), "Q2_0 fixture size mismatch");
++            gguf_add_tensor(meta, tensor);
++            gguf_set_tensor_type(meta, name.c_str(), GGML_TYPE_Q2_0);
++            gguf_set_tensor_data(meta, name.c_str(), packed.back().data());
++        } else {
++            floats.emplace_back(std::move(data));
++            tensor->data = floats.back().data();
++            gguf_add_tensor(meta, tensor);
++        }
++    }
++
++    void save(const std::filesystem::path & path) {
++        require(gguf_write_to_file(meta, path.string().c_str(), false), "cannot write fixture");
++    }
++};
++
++static model_ptr load_model(const std::filesystem::path & path, int ngl) {
++    error_log.clear();
++    auto params = llama_model_default_params();
++    params.n_gpu_layers = ngl;
++    params.load_mode = LLAMA_LOAD_MODE_NONE;
++    params.use_extra_bufts = false;
++    return model_ptr(llama_model_load_from_file(path.string().c_str(), params), llama_model_free);
++}
++
++static std::vector<float> logits(llama_model * model, int ngl, ggml_type cache) {
++    auto params = llama_context_default_params();
++    params.n_ctx = 64;
++    params.n_batch = 8;
++    params.n_ubatch = 8;
++    params.n_threads = params.n_threads_batch = 2;
++    params.offload_kqv = ngl > 0;
++    params.op_offload = ngl > 0;
++    params.type_k = cache;
++    params.type_v = cache;
++    params.flash_attn_type = cache == GGML_TYPE_F16 ? LLAMA_FLASH_ATTN_TYPE_DISABLED : LLAMA_FLASH_ATTN_TYPE_ENABLED;
++    context_ptr ctx(llama_init_from_model(model, params), llama_free);
++    require(ctx != nullptr, "context creation failed: " + error_log);
++    auto batch = llama_batch_init(8, 0, 1);
++    std::vector<float> result;
++    const int vocab = llama_vocab_n_tokens(llama_model_get_vocab(model));
++    const llama_token tokens[] = { 1, 5, 2, 7, 3, 8, 4 };
++    int position = 0;
++    for (int count : { 4, 1, 1, 1 }) {
++        batch.n_tokens = count;
++        for (int i = 0; i < count; ++i) {
++            batch.token[i] = tokens[position + i];
++            batch.pos[i] = position + i;
++            batch.n_seq_id[i] = 1;
++            batch.seq_id[i][0] = 0;
++            batch.logits[i] = 1;
++        }
++        const int status = llama_decode(ctx.get(), batch);
++        if (status != 0) {
++            llama_batch_free(batch);
++            throw std::runtime_error("decode failed: " + std::to_string(status) + " " + error_log);
++        }
++        for (int i = 0; i < count; ++i) {
++            const float * values = llama_get_logits_ith(ctx.get(), i);
++            require(values != nullptr, "missing logits");
++            result.insert(result.end(), values, values + vocab);
++        }
++        position += count;
++    }
++    llama_batch_free(batch);
++    return result;
++}
++
++static void compare(const std::filesystem::path & dir, const std::string & name, fixture_config cfg, int ngl, ggml_type cache = GGML_TYPE_F16) {
++    cfg.folded = false;
++    fixture primal(cfg);
++    const auto primal_path = dir / (name + "-primal.gguf");
++    primal.save(primal_path);
++    cfg.folded = true;
++    fixture folded(cfg);
++    const auto folded_path = dir / (name + "-folded.gguf");
++    folded.save(folded_path);
++    auto reference = load_model(primal_path, ngl);
++    require(reference != nullptr, "primal model failed: " + error_log);
++    const auto expected = logits(reference.get(), ngl, cache);
++    reference.reset();
++    auto candidate = load_model(folded_path, ngl);
++    require(candidate != nullptr, "folded model failed: " + error_log);
++    const auto actual = logits(candidate.get(), ngl, cache);
++    require(actual.size() == expected.size(), "logit shape mismatch");
++    double max_error = 0.0, squared_error = 0.0, squared_reference = 0.0;
++    for (size_t i = 0; i < actual.size(); ++i) {
++        require(std::isfinite(actual[i]) && std::isfinite(expected[i]), "nonfinite logits");
++        const double diff = actual[i] - expected[i];
++        max_error = std::max(max_error, std::abs(diff));
++        squared_error += diff * diff;
++        squared_reference += (double) expected[i] * expected[i];
++    }
++    const double relative_error = std::sqrt(squared_error / std::max(squared_reference, 1e-20));
++    const double tolerance = cfg.quantized || cache != GGML_TYPE_F16 ? 0.03 : 0.0005;
++    require(relative_error < tolerance && max_error < tolerance, name + ": logit mismatch, relative=" + std::to_string(relative_error));
++    std::printf("PASS %s: max_abs=%.8g relative_l2=%.8g (%zu logits)\n", name.c_str(), max_error, relative_error, actual.size());
++}
++
++static void reject(const std::filesystem::path & dir, const char * name, const char * expected_error, const std::function<void(gguf_context *)> & mutate) {
++    fixture_config cfg;
++    cfg.folded = cfg.explicit_signs = cfg.inverse = true;
++    fixture f(cfg);
++    mutate(f.meta);
++    const auto path = dir / (std::string(name) + ".gguf");
++    f.save(path);
++    auto model = load_model(path, 0);
++    require(model == nullptr, std::string(name) + ": malformed model was accepted");
++    require(error_log.find(expected_error) != std::string::npos, std::string(name) + ": wrong rejection: " + error_log);
++    std::printf("PASS reject %s\n", name);
++}
++
++int main(int argc, char ** argv) {
++    int ngl = 0;
++    if (argc == 3 && std::string(argv[1]) == "--ngl") {
++        ngl = std::stoi(argv[2]);
++    } else if (argc != 1) {
++        std::fprintf(stderr, "usage: %s [--ngl N]\n", argv[0]);
++        return EXIT_FAILURE;
++    }
++    llama_log_set([](ggml_log_level level, const char * text, void *) {
++        if (level == GGML_LOG_LEVEL_ERROR) {
++            error_log += text;
++        }
++    }, nullptr);
++    ggml_backend_load_all();
++    llama_backend_init();
++    const std::filesystem::path dir = "test-hadamard-fixtures";
++    bool owns_dir = false;
++    int result = EXIT_SUCCESS;
++    try {
++        if (ngl > 0) {
++            bool gpu = false;
++            for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
++                const auto type = ggml_backend_dev_type(ggml_backend_dev_get(i));
++                gpu |= type == GGML_BACKEND_DEVICE_TYPE_GPU || type == GGML_BACKEND_DEVICE_TYPE_IGPU;
++            }
++            require(gpu, "GPU requested but no GPU backend is available");
++        }
++        owns_dir = std::filesystem::create_directory(dir);
++        require(owns_dir, "fixture directory already exists; use another working directory");
++        fixture_config cfg;
++        compare(dir, "identity", cfg, ngl);
++        cfg.explicit_signs = true;
++        compare(dir, "explicit-signs", cfg, ngl);
++        cfg.inverse = true;
++        compare(dir, "inverse-lookup", cfg, ngl);
++        cfg.tied = true;
++        compare(dir, "tied-output-v2", cfg, ngl);
++        cfg.tied = false;
++        cfg.quantized = true;
++        compare(dir, "q2-0", cfg, ngl);
++        cfg.quantized = false;
++        compare(dir, "q8-kv", cfg, ngl, GGML_TYPE_Q8_0);
++        cfg.moe = true;
++        compare(dir, "moe-matmul-id", cfg, ngl);
++        cfg.moe = false;
++        cfg.qwen35 = true;
++        compare(dir, "qwen35-hybrid", cfg, ngl);
++        cfg.grouped = true;
++        compare(dir, "qwen35-grouped-gdn", cfg, ngl);
++        cfg.qwen35 = cfg.grouped = false;
++        cfg.block = 128;
++        compare(dir, "block-128", cfg, ngl);
++
++        reject(dir, "missing-version", "requires prism.hadamard.version", [](auto * m) { gguf_remove_key(m, "prism.hadamard.version"); });
++        reject(dir, "bad-version", "unsupported prism.hadamard.version", [](auto * m) { gguf_set_val_u32(m, "prism.hadamard.version", 99); });
++        reject(dir, "oversized-block", "invalid prism.hadamard.block_size", [](auto * m) { gguf_set_val_u32(m, "prism.hadamard.block_size", 1u << 31); });
++        reject(dir, "zero-block", "invalid prism.hadamard.block_size", [](auto * m) { gguf_set_val_u32(m, "prism.hadamard.block_size", 0); });
++        reject(dir, "non-power-block", "invalid prism.hadamard.block_size", [](auto * m) { gguf_set_val_u32(m, "prism.hadamard.block_size", 96); });
++        reject(dir, "bad-transform", "unsupported prism.hadamard.transform", [](auto * m) { gguf_set_val_str(m, "prism.hadamard.transform", "other"); });
++        reject(dir, "bad-axis", "unsupported prism.hadamard.axis", [](auto * m) { gguf_set_val_str(m, "prism.hadamard.axis", "output"); });
++        reject(dir, "bad-sign-mode", "unsupported prism.hadamard.sign_mode", [](auto * m) { gguf_set_val_str(m, "prism.hadamard.sign_mode", "random"); });
++        reject(dir, "bad-sign-value", "sign values must be +/-1", [](auto * m) {
++            std::vector<int32_t> values(384, 1); values[0] = 0;
++            gguf_set_arr_data(m, "prism.hadamard.sign_values", GGUF_TYPE_INT32, values.data(), values.size());
++        });
++        reject(dir, "duplicate-sign-width", "duplicate prism.hadamard sign width", [](auto * m) {
++            const int32_t widths[] = { 128, 128 };
++            gguf_set_arr_data(m, "prism.hadamard.sign_widths", GGUF_TYPE_INT32, widths, 2);
++        });
++        reject(dir, "wrong-sign-type", "wrong array element type", [](auto * m) {
++            const float values[] = { 1.0f };
++            gguf_set_arr_data(m, "prism.hadamard.sign_values", GGUF_TYPE_FLOAT32, values, 1);
++        });
++        reject(dir, "short-sign-table", "invalid prism.hadamard sign width", [](auto * m) {
++            const int32_t values[] = { 1 };
++            gguf_set_arr_data(m, "prism.hadamard.sign_values", GGUF_TYPE_INT32, values, 1);
++        });
++        reject(dir, "unverified-weight", "not on a verified Hadamard-aware", [](auto * m) {
++            const char * names[] = { "blk.0.attn_norm.weight" };
++            gguf_set_arr_str(m, "prism.hadamard.weight_names", names, 1);
++        });
++        reject(dir, "unknown-weight", "weight not found", [](auto * m) {
++            const char * names[] = { "blk.999.attn_q.weight" };
++            gguf_set_arr_str(m, "prism.hadamard.weight_names", names, 1);
++        });
++        reject(dir, "bad-inverse-type", "array key not found", [](auto * m) { gguf_set_val_str(m, "prism.hadamard.inverse_weight_names", "token_embd.weight"); });
++        reject(dir, "bad-inverse-name", "not a verified inverse-after-lookup", [](auto * m) {
++            const char * names[] = { "output.weight" };
++            gguf_set_arr_str(m, "prism.hadamard.inverse_weight_names", names, 1);
++        });
++        reject(dir, "untagged-tied-output", "version 2 requires tied_output", [](auto * m) { gguf_set_val_u32(m, "prism.hadamard.version", 2); });
++    } catch (const std::exception & error) {
++        std::fprintf(stderr, "FAIL: %s\n", error.what());
++        result = EXIT_FAILURE;
++    }
++    if (owns_dir) {
++        std::filesystem::remove_all(dir);
++    }
++    llama_backend_free();
++    return result;
++}

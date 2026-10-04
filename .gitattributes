@@ -1,0 +1,3 @@
+# Preserve original patch context and captured program output verbatim.
+patches/*.patch -whitespace
+evidence/** -whitespace

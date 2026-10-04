@@ -1,0 +1,2 @@
+ERROR: CUDA compilation requires nvcc from the CUDA toolkit; no CPU substitution was made
+PASS CUDA was not substituted by CPU

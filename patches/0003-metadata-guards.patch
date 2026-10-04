@@ -1,0 +1,49 @@
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -1312,6 +1312,13 @@
+     }
+ 
+     uint32_t hadamard_version = 0;
++    if (gguf_find_key(ctx, "prism.hadamard.version") < 0) {
++        for (int64_t i = 0; i < gguf_get_n_kv(ctx); ++i) {
++            if (strncmp(gguf_get_key(ctx, i), "prism.hadamard.", 15) == 0) {
++                throw std::runtime_error("prism.hadamard metadata requires prism.hadamard.version");
++            }
++        }
++    }
+     ml.get_key("prism.hadamard.tied_output", hadamard_tied_output, false);
+     if (ml.get_key("prism.hadamard.version", hadamard_version, false)) {
+         if (hadamard_version != 1 && hadamard_version != 2) {
+@@ -1337,7 +1344,8 @@
+         ml.get_key("prism.hadamard.sign_mode", sign_mode);
+         ml.get_arr("prism.hadamard.weight_names", weight_names);
+ 
+-        if (block_size == 0 || (block_size & (block_size - 1)) != 0) {
++        // Bound the persistent dense rotation before computing its square.
++        if (block_size == 0 || block_size > 8192 || (block_size & (block_size - 1)) != 0) {
+             throw std::runtime_error(format("invalid prism.hadamard.block_size: %u", block_size));
+         }
+         if (transform != "normalized-sylvester-walsh-hadamard") {
+@@ -1365,8 +1373,11 @@
+             }
+             size_t off = 0;
+             for (const int32_t width : sign_widths) {
+-                if (width <= 0 || (uint32_t) width % block_size != 0 || off + width > sign_values.size()) {
++                if (width <= 0 || (uint32_t) width % block_size != 0 || (size_t) width > sign_values.size() - off) {
+                     throw std::runtime_error(format("invalid prism.hadamard sign width: %d", width));
++                }
++                if (hadamard_sign_data.count(width)) {
++                    throw std::runtime_error(format("duplicate prism.hadamard sign width: %d", width));
+                 }
+                 auto & vec = hadamard_sign_data[width];
+                 vec.assign(sign_values.begin() + off, sign_values.begin() + off + width);
+@@ -1445,7 +1456,8 @@
+         // tensors consumed by row lookup store latent rows and need the
+         // inverse transform applied to the lookup result instead
+         std::vector<std::string> inverse_names;
+-        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names, false);
++        ml.get_arr("prism.hadamard.inverse_weight_names", inverse_names,
++                gguf_find_key(ctx, "prism.hadamard.inverse_weight_names") >= 0);
+         for (const auto & name : inverse_names) {
+             // the graph applies the inverse only to the token-embedding lookup; any
+             // other latent table would load and silently stay rotated
