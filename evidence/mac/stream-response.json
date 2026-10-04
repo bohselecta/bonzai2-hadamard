@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "elapsed_seconds": 12.470722333528101,
+  "content_chunks": 7,
+  "chunks": [
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.271879Z",
+      "message": {
+        "role": "assistant",
+        "content": "Red"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.373946Z",
+      "message": {
+        "role": "assistant",
+        "content": "\n"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.489424Z",
+      "message": {
+        "role": "assistant",
+        "content": "Blue"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.60128Z",
+      "message": {
+        "role": "assistant",
+        "content": "\n"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.709351Z",
+      "message": {
+        "role": "assistant",
+        "content": "Green"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.81291Z",
+      "message": {
+        "role": "assistant",
+        "content": "\n"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:23.92132Z",
+      "message": {
+        "role": "assistant",
+        "content": "Yellow"
+      },
+      "done": false
+    },
+    {
+      "model": "bonsai2:ptq1",
+      "created_at": "2026-10-04T12:45:24.037992Z",
+      "message": {
+        "role": "assistant",
+        "content": ""
+      },
+      "done": true,
+      "done_reason": "stop",
+      "total_duration": 12463160250,
+      "load_duration": 1112542,
+      "prompt_eval_count": 31,
+      "prompt_eval_cached_count": 0,
+      "prompt_eval_duration": 1910433000,
+      "eval_count": 8,
+      "eval_duration": 766208000
+    }
+  ]
+}

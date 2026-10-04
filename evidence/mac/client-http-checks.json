@@ -1,0 +1,10 @@
+{
+  "private-files": {
+    "status": "PASS",
+    "code": 404
+  },
+  "host-check": {
+    "status": "PASS",
+    "code": 403
+  }
+}

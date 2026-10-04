@@ -1,0 +1,2 @@
+79997 79975  22528 /Users/home/Desktop/bonsai-mac-ollama/runtime/ollama-prism/build-mac/bin/ollama
+80027 79997 4094832 /Users/home/Desktop/bonsai-mac-ollama/runtime/ollama-prism/build-mac/lib/ollama/llama-server

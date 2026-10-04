@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "failure": "SIGKILL of this job's Ollama daemon during browser generation",
+  "old_pid": 79997,
+  "new_pid": 80248,
+  "api_recovery_seconds": 2.1727915834635496,
+  "version": {
+    "version": "0.34.2-bonsai-local"
+  }
+}

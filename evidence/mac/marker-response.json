@@ -1,0 +1,1 @@
+{"model":"bonsai2:ptq1","created_at":"2026-10-04T12:39:54.039766Z","message":{"role":"assistant","content":"BONSAI_OK"},"done":true,"done_reason":"stop","total_duration":12022888708,"load_duration":9355696917,"prompt_eval_count":35,"prompt_eval_cached_count":0,"prompt_eval_duration":2116295999,"eval_count":6,"eval_duration":544361000}

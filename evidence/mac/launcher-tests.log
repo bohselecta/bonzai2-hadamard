@@ -1,0 +1,8 @@
+test_occupied_port_does_not_spawn_or_stop_any_process (__main__.LauncherChecks.test_occupied_port_does_not_spawn_or_stop_any_process) ... ok
+test_same_size_tampering_is_rejected (__main__.LauncherChecks.test_same_size_tampering_is_rejected) ... ok
+test_wrong_source_revision_preserves_checkout (__main__.LauncherChecks.test_wrong_source_revision_preserves_checkout) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK

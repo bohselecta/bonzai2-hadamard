@@ -1,0 +1,41 @@
+diff --git a/fs/gguf/file_type.go b/fs/gguf/file_type.go
+index 0fe14c7..d85ce02 100644
+--- a/fs/gguf/file_type.go
++++ b/fs/gguf/file_type.go
+@@ -46,6 +46,9 @@ const (
+ 	fileTypeNVFP4
+ 	fileTypeQ1_0
+ 
++	FileTypePQ2_0  FileType = 141
++	FileTypePTQ1_0 FileType = 143
++
+ 	FileTypeUnknown FileType = 1024
+ )
+ 
+@@ -121,6 +124,10 @@ func (t FileType) String() string {
+ 		return "NVFP4"
+ 	case fileTypeQ1_0:
+ 		return "Q1_0"
++	case FileTypePQ2_0:
++		return "PQ2_0"
++	case FileTypePTQ1_0:
++		return "PTQ1_0"
+ 	default:
+ 		return "unknown"
+ 	}
+diff --git a/fs/gguf/gguf_internal_test.go b/fs/gguf/gguf_internal_test.go
+index 825c212..bd905a4 100644
+--- a/fs/gguf/gguf_internal_test.go
++++ b/fs/gguf/gguf_internal_test.go
+@@ -126,6 +126,11 @@ func TestTensorInfoRejectsElementCountOverflow(t *testing.T) {
+ }
+ 
+ func TestCurrentTensorTypes(t *testing.T) {
++	for value, name := range map[FileType]string{141: "PQ2_0", 143: "PTQ1_0"} {
++		if got := value.String(); got != name {
++			t.Fatalf("FileType(%d) = %q, want %q", value, got, name)
++		}
++	}
+ 	for _, tt := range []struct {
+ 		value     TensorType
+ 		number    uint32

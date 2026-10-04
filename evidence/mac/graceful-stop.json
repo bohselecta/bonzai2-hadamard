@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "launcher_pid": 79975,
+  "backend_process_group": 80248,
+  "owned_ports_closed": true,
+  "owned_process_group_empty": true,
+  "original_ollama_still_running": true
+}

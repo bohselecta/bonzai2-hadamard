@@ -70,10 +70,17 @@ class ProjectChecks(unittest.TestCase):
                 execute.assert_not_called()
 
     def test_missing_cuda_toolchain_stops_before_build(self):
-        with patch.object(project.shutil, "which", side_effect=lambda name: None if name == "nvcc" else "/tool"), \
+        with patch.object(project.sys, "platform", "linux"), \
+                patch.object(project.shutil, "which", side_effect=lambda name: None if name == "nvcc" else "/tool"), \
                 patch.object(project, "run") as run:
             with self.assertRaisesRegex(RuntimeError, "nvcc"):
                 project.preflight("cuda", Path(tempfile.gettempdir()))
+            run.assert_not_called()
+
+    def test_linux_launcher_rejects_macos_before_build(self):
+        with patch.object(project.sys, "platform", "darwin"), patch.object(project, "run") as run:
+            with self.assertRaisesRegex(RuntimeError, "targets Linux"):
+                project.preflight("cpu", Path(tempfile.gettempdir()))
             run.assert_not_called()
 
 

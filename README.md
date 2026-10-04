@@ -4,6 +4,10 @@ A reproducible private patch for the official Bonsai 2 27B **Q2_0 development ch
 
 The exact upstream base, pull request revisions, patch checksum, and patched-file checksums are in `source.json`. The checkpoint revision and SHA-256 are in `model.json`. This is a pinned development integration, not a claim that Bonsai 2 support is merged into mainline.
 
+## Mac Ollama client
+
+The verified compact PTQ1_0 Mac client uses a separately built actual Ollama/Metal runtime. See [MAC_CLIENT.md](MAC_CLIENT.md) for Launch Bonsai.command, the local chat at http://127.0.0.1:8765, source/model pins, acceptance evidence and limits. The Ubuntu Q2_0 instructions below retain their original scope.
+
 ## Project quick start
 
 See `PROJECT.md` for the executable Ubuntu setup, local project API, and private handoff PR submission. On the Ubuntu GPU host, run `python3 scripts/project.py setup --backend cuda`, then `python3 scripts/project.py serve`. The completed Ubuntu acceptance results and measurements are in `UBUNTU_RESULTS.md`; `CODEX_UBUNTU_TASK.md` retains the reproducibility checklist.

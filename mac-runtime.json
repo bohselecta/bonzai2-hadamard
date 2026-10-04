@@ -1,0 +1,10 @@
+{
+  "ollama_repository": "https://github.com/xInterlopeRx/ollama.git",
+  "ollama_revision": "3db1d7c30173620d6adeda724dbea11c55ece88d",
+  "llama_repository": "https://github.com/PrismML-Eng/llama.cpp.git",
+  "llama_revision": "9a9394a895b96003ca842a6041cb28ac49a108f7",
+  "version": "0.34.2-bonsai-local",
+  "model_name": "bonsai2:ptq1",
+  "api_port": 11435,
+  "client_port": 8765
+}
